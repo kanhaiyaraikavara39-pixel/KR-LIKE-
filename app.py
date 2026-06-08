@@ -1,7 +1,6 @@
 from flask import Flask, request, render_template_string, jsonify
 import asyncio
 import os
-import re
 from pyrogram import Client
 
 app = Flask(__name__)
@@ -11,7 +10,6 @@ API_ID = 36111584
 API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
-# यहाँ अपने इंफो बोट का सही यूजरनेम बिना @ के लिखें
 INFO_BOT_USERNAME = "FFPlayerInfoBot" 
 
 # ==================== HTML INTERFACE WITH ANIMATION ====================
@@ -35,13 +33,11 @@ HTML_TEMPLATE = """
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; margin-top: 5px; }
         button:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
         
-        /* 🌀 लोडिंग एनिमेशन स्टाइल */
         .loading-box { display: none; margin-top: 20px; padding: 20px; }
         .spinner { width: 50px; height: 50px; border: 5px solid #3d307a; border-top: 5px solid #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loading-text { color: #00ffcc; font-size: 14px; font-weight: 500; letter-spacing: 0.5px; }
 
-        /* 📊 रिजल्ट कार्ड स्टाइल */
         .result-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(0, 255, 204, 0.05); border: 1px solid #3d307a; text-align: left; }
         .player-photo { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; border: 2px solid #00ffcc; margin-bottom: 15px; display: none; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
         .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 12px; border-radius: 6px; border-left: 4px solid #ff007f; }
@@ -116,7 +112,7 @@ HTML_TEMPLATE = """
             } catch (err) {
                 loadingBox.style.display = 'none';
                 errorBox.style.display = 'block';
-                errorBox.innerText = '❌ सर्ver से कनेक्ट करने में कोई तकनीकी खराबी आई भाई।';
+                errorBox.innerText = '❌ सर्वर से कनेक्ट करने में कोई तकनीकी खराबी आई भाई।';
             }
         });
     </script>
@@ -133,17 +129,16 @@ async def get_bot_profile_data(uid):
         try: await tg_client.read_chat_history(INFO_BOT_USERNAME)
         except: pass
 
-        # बोट को कमांड सेंड करना
         sent_msg = await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
         bot_response_text = ""
         has_photo = False
         file_id = ""
         
-        # ⏱️ स्मार्ट लूप: बोट के जवाब का अधिकतम 5 सेकंड इंतज़ार करना (Vercel को क्रैश होने से बचाने के लिए)
+        # यहाँ स्पेलिंग एरर ठीक कर दिया गया है भाई
         for _ in range(5):
             await asyncio.sleep(1)
-            async por message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
+            async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
                 if message.from_user and message.from_user.username == INFO_BOT_USERNAME and message.id > sent_msg.id:
                     if message.photo:
                         has_photo = True
