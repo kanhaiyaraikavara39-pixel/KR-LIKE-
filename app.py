@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template_string, jsonify
 import asyncio
-import os
 from pyrogram import Client
 
 app = Flask(__name__)
@@ -12,7 +11,7 @@ STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW
 
 INFO_BOT_USERNAME = "FFPlayerInfoBot" 
 
-# ==================== HTML INTERFACE WITH ANIMATION ====================
+# ==================== HTML INTERFACE ====================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -33,14 +32,15 @@ HTML_TEMPLATE = """
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; margin-top: 5px; }
         button:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
         
+        /* 🌀 एनिमेशन बॉक्स */
         .loading-box { display: none; margin-top: 20px; padding: 20px; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #3d307a; border-top: 5px solid #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+        .spinner { width: 45px; height: 45px; border: 4px solid #3d307a; border-top: 4px solid #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { color: #00ffcc; font-size: 14px; font-weight: 500; letter-spacing: 0.5px; }
+        .loading-text { color: #00ffcc; font-size: 14px; font-weight: 500; }
 
+        /* 📊 रिजल्ट बॉक्स */
         .result-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(0, 255, 204, 0.05); border: 1px solid #3d307a; text-align: left; }
-        .player-photo { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; border: 2px solid #00ffcc; margin-bottom: 15px; display: none; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
-        .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 12px; border-radius: 6px; border-left: 4px solid #ff007f; }
+        .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 15px; border-radius: 6px; border-left: 4px solid #ff007f; font-family: monospace; }
         .error-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(255, 0, 127, 0.1); border: 1px solid #ff007f; color: #ff007f; font-size: 14px; text-align: left; }
         
         .footer { text-align: center; font-size: 12px; color: #666; margin-top: 10px; letter-spacing: 1px; }
@@ -50,23 +50,22 @@ HTML_TEMPLATE = """
 
     <div class="container">
         <h1>👑 S.KANHAIYA SERVICES</h1>
-        <p class="subtitle">लाइव गेम प्रोफाइल एवं आउटफिट चेकर पैनल</p>
+        <p class="subtitle">लाइव गेम प्रोफाइल इनफार्मेशन चेकर</p>
         
         <form id="checkerForm">
             <div class="form-group">
                 <label>खिलाड़ी की यूआईडी (Player UID):</label>
                 <input type="number" id="gameUid" placeholder="यहाँ गेम यूआईडी दर्ज करें" required>
             </div>
-            <button type="submit">🔍 प्रोफाइल और आउटफिट निकालें</button>
+            <button type="submit">🔍 प्रोफाइल इनफार्मेशन निकालें</button>
         </form>
 
         <div id="loadingBox" class="loading-box">
             <div class="spinner"></div>
-            <div class="loading-text">⚡ किंग S.KANHAIYA का बोट जानकारी और आउटफिट इमेज निकाल रहा है... कृपया रुकें...</div>
+            <div class="loading-text">⚡ किंग S.KANHAIYA का बोट जानकारी निकाल रहा है... कृपया रुकें...</div>
         </div>
 
         <div id="resultBox" class="result-box">
-            <img id="playerImg" class="player-photo" src="" alt="Player Outfit">
             <div id="playerDetails" class="info-text"></div>
         </div>
 
@@ -83,13 +82,11 @@ HTML_TEMPLATE = """
             const loadingBox = document.getElementById('loadingBox');
             const resultBox = document.getElementById('resultBox');
             const errorBox = document.getElementById('errorBox');
-            const playerImg = document.getElementById('playerImg');
             const playerDetails = document.getElementById('playerDetails');
 
             loadingBox.style.display = 'block';
             resultBox.style.display = 'none';
             errorBox.style.display = 'none';
-            playerImg.style.display = 'none';
 
             try {
                 const response = await fetch('/api/fetch-profile?uid=' + uid);
@@ -100,11 +97,6 @@ HTML_TEMPLATE = """
                 if (data.success) {
                     resultBox.style.display = 'block';
                     playerDetails.innerText = data.bot_msg; 
-
-                    if (data.has_photo) {
-                        playerImg.src = "/api/get-photo?file_id=" + data.file_id;
-                        playerImg.style.display = 'block';
-                    }
                 } else {
                     errorBox.style.display = 'block';
                     errorBox.innerText = "❌ जानकारी नहीं मिल सकी: " + data.message;
@@ -120,8 +112,8 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ==================== PYROGRAM BACKGROUND LOGIC ============
-async def get_bot_profile_data(uid):
+# ==================== PYROGRAM LOGIC ====================
+async def get_bot_text_data(uid):
     tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
     try:
         await tg_client.start()
@@ -129,21 +121,20 @@ async def get_bot_profile_data(uid):
         try: await tg_client.read_chat_history(INFO_BOT_USERNAME)
         except: pass
 
+        # बोट को कमांड भेजना
         sent_msg = await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
         bot_response_text = ""
-        has_photo = False
-        file_id = ""
         
-        # यहाँ स्पेलिंग एरर ठीक कर दिया गया है भाई
+        # ⏱️ फ़ास्ट चेकिंग लूप (अधिकतम 5 सेकंड इंतज़ार)
         for _ in range(5):
             await asyncio.sleep(1)
             async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
                 if message.from_user and message.from_user.username == INFO_BOT_USERNAME and message.id > sent_msg.id:
-                    if message.photo:
-                        has_photo = True
-                        file_id = message.photo.file_id
-                        bot_response_text = message.caption if message.caption else "इमेज प्राप्त हुई भाई!"
+                    # अगर बोट ने फोटो के साथ टेक्स्ट (Caption) भेजा है
+                    if message.photo and message.caption:
+                        bot_response_text = message.caption
+                    # अगर बोट ने सिर्फ नॉर्मल टेक्स्ट भेजा है
                     elif message.text:
                         bot_response_text = message.text
                     break
@@ -153,14 +144,9 @@ async def get_bot_profile_data(uid):
         await tg_client.stop()
         
         if bot_response_text:
-            return {
-                "success": True, 
-                "bot_msg": bot_response_text, 
-                "has_photo": has_photo, 
-                "file_id": file_id
-            }
+            return {"success": True, "bot_msg": bot_response_text}
         else:
-            return {"success": False, "message": "बॉट ने टाइम पर जवाब नहीं दिया। कृपया दोबारा कोशिश करें।"}
+            return {"success": False, "message": "बॉट ने टाइम पर जवाब नहीं दिया। कृपया दोबारा कोशिश करें भाई।"}
             
     except Exception as e:
         try: await tg_client.stop()
@@ -180,36 +166,9 @@ def fetch_profile():
         
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(get_bot_profile_data(uid))
+    result = loop.run_until_complete(get_bot_text_data(uid))
     loop.close()
     return jsonify(result)
-
-@app.route('/api/get-photo')
-def get_photo():
-    file_id = request.args.get('file_id')
-    if not file_id:
-        return "Missing file_id", 400
-        
-    async def download_tg_photo():
-        tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
-        try:
-            await tg_client.start()
-            photo_bytes = await tg_client.download_media(file_id, in_memory=True)
-            await tg_client.stop()
-            return photo_bytes.getbuffer().tobytes()
-        except Exception as e:
-            try: await tg_client.stop()
-            except: pass
-            return None
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    img_data = loop.run_until_complete(download_tg_photo())
-    loop.close()
-    
-    if img_data:
-        return app.response_class(img_data, mimetype='image/jpeg')
-    return "Image not found", 404
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
