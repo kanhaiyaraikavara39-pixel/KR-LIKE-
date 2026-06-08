@@ -1,6 +1,7 @@
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, render_template_string, jsonify, send_from_path
 import asyncio
-import re
+import os
+import io
 from pyrogram import Client
 
 app = Flask(__name__)
@@ -10,12 +11,14 @@ API_ID = 36111584
 API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
-# यहाँ अपने इंफो बोट का सही यूजरनेम बिना @ के लिखें
-INFO_BOT_USERNAME = "FFPlayerInfoBot" 
+INFO_BOT_USERNAME = "FreeFireInfoBot" 
 
-DATA_FILE = "/tmp/saved_accounts.txt"
+# फोटो को सर्वर पर स्टोर करने की जगह
+CACHE_DIR = "/tmp/avatar_cache"
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
 
-# ==================== HTML INTERFACE ====================
+# ==================== HTML INTERFACE WITH ANIMATION ====================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -26,21 +29,28 @@ HTML_TEMPLATE = """
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f0c20; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 500px; background: #1a1635; padding: 25px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #3d307a; margin-bottom: 20px; }
-        h1 { text-align: center; color: #00ffcc; margin-bottom: 10px; font-size: 24px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
-        p.subtitle { text-align: center; color: #aaa; font-size: 14px; margin-bottom: 25px; }
-        .section-title { font-size: 18px; color: #ff007f; margin-bottom: 15px; border-bottom: 1px solid #3d307a; padding-bottom: 5px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: #ccc; font-size: 14px; }
-        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3d307a; background: #0f0c20; color: #fff; font-size: 16px; outline: none; }
+        .container { width: 100%; max-width: 500px; background: #1a1635; padding: 25px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #3d307a; margin-bottom: 20px; text-align: center; }
+        h1 { color: #00ffcc; margin-bottom: 5px; font-size: 24px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
+        p.subtitle { color: #aaa; font-size: 14px; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #ccc; font-size: 14px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3d307a; background: #0f0c20; color: #fff; font-size: 16px; outline: none; text-align: center; }
         input:focus { border-color: #00ffcc; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
-        .btn-free { background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; }
-        .btn-free:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
-        .locked-btn { background: #444 !important; color: #888 !important; cursor: not-allowed; }
-        .response-box { margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 14px; display: none; line-height: 1.5; white-space: pre-line; }
-        .success { background: rgba(0, 255, 13, 0.1); border: 1px solid #00ffcc; color: #00ffcc; }
-        .error { background: rgba(255, 0, 127, 0.1); border: 1px solid #ff007f; color: #ff007f; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; margin-top: 5px; }
+        button:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
+        
+        /* 🌀 लोडिंग एनीमेशन स्टाइल */
+        .loading-box { display: none; margin-top: 20px; padding: 20px; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #3d307a; border-top: 5px solid #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: #00ffcc; font-size: 14px; font-weight: 500; letter-spacing: 0.5px; }
+
+        /* 📊 रिजल्ट कार्ड स्टाइल */
+        .result-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(0, 255, 204, 0.05); border: 1px solid #3d307a; text-align: left; }
+        .player-photo { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; border: 2px solid #00ffcc; margin-bottom: 15px; display: none; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+        .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 12px; border-radius: 6px; border-left: 4px solid #ff007f; }
+        .error-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(255, 0, 127, 0.1); border: 1px solid #ff007f; color: #ff007f; font-size: 14px; text-align: left; }
+        
         .footer { text-align: center; font-size: 12px; color: #666; margin-top: 10px; letter-spacing: 1px; }
     </style>
 </head>
@@ -48,121 +58,71 @@ HTML_TEMPLATE = """
 
     <div class="container">
         <h1>👑 S.KANHAIYA SERVICES</h1>
-        <p class="subtitle">टेलीग्राम ऑटो-इंफो वेरिफिकेशन सिस्टम</p>
+        <p class="subtitle">लाइव गेम प्रोफाइल एवं आउटफिट चेकर पैनल</p>
         
-        <div class="section-title">🔍 STEP 1: VERIFY GAME UID</div>
-        <form id="verifyForm">
+        <form id="checkerForm">
             <div class="form-group">
-                <label>गेम यूआईडी (Game UID):</label>
-                <input type="number" id="gameUid" placeholder="यहाँ अपनी गेम यूआईडी डालें" required>
+                <label>खिलाड़ी की यूआईडी (Player UID):</label>
+                <input type="number" id="gameUid" placeholder="यहाँ गेम यूआईडी दर्ज करें" required>
             </div>
-            <button type="submit" class="btn-free">बोट से डेटा निकालें</button>
+            <button type="submit">🔍 प्रोफाइल और आउटफिट निकालें</button>
         </form>
 
-        <div id="verifyResponse" class="response-box"></div>
-    </div>
+        <div id="loadingBox" class="loading-box">
+            <div class="spinner"></div>
+            <div class="loading-text">⚡ किंग S.KANHAIYA का बोट जानकारी और आउटफिट इमेज निकाल रहा है... कृपया रुकें...</div>
+        </div>
 
-    <div class="container">
-        <div class="section-title">🥷 STEP 2: PREMIUM GUEST LOGIN</div>
-        <form id="guestLoginForm">
-            <div class="form-group">
-                <label>गेस्ट लॉगिन आईडी (FB/Google/VK/ID):</label>
-                <input type="text" id="guestId" placeholder="लॉगिन आईडी दर्ज करें" required disabled>
-            </div>
-            <div class="form-group">
-                <label>पासवर्ड (Password):</label>
-                <input type="password" id="guestPass" placeholder="पासवर्ड दर्ज करें" required disabled>
-            </div>
-            <button type="submit" id="loginSubmitBtn" class="locked-btn" style="margin-top: 10px;" disabled>🔐 डेटा सेव करें</button>
-        </form>
-        
-        <div id="loginResponse" class="response-box"></div>
+        <div id="resultBox" class="result-box">
+            <img id="playerImg" class="player-photo" src="" alt="Player Outfit">
+            <div id="playerDetails" class="info-text"></div>
+        </div>
+
+        <div id="errorBox" class="error-box"></div>
     </div>
 
     <div class="footer">⚡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴋ.ʀ sᴇʀᴠɪ́ᴄᴇ</div>
 
     <script>
-        let verifiedUid = "";
-
-        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+        document.getElementById('checkerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const uid = document.getElementById('gameUid').value;
-            const resBox = document.getElementById('verifyResponse');
             
-            resBox.style.display = 'block';
-            resBox.className = 'response-box success';
-            resBox.innerText = '🔄 आपका टेलीग्राम अकाउंट इंफो बोट को /get कमांड भेज रहा है... कृपया रुकें...';
+            const loadingBox = document.getElementById('loadingBox');
+            const resultBox = document.getElementById('resultBox');
+            const errorBox = document.getElementById('errorBox');
+            const playerImg = document.getElementById('playerImg');
+            const playerDetails = document.getElementById('playerDetails');
+
+            // स्क्रीन रीसेट और लोडिंग चालू करना
+            loadingBox.style.display = 'block';
+            resultBox.style.display = 'none';
+            errorBox.style.display = 'none';
+            playerImg.style.display = 'none';
 
             try {
-                const response = await fetch('/api/tg-verify?uid=' + uid);
+                const response = await fetch('/api/fetch-profile?uid=' + uid);
                 const data = await response.json();
                 
+                loadingBox.style.display = 'none'; // लोडिंग बंद
+
                 if (data.success) {
-                    // 🎯 कोट्स का झंझट खत्म करने के लिए डायरेक्ट स्ट्रिंग जोड़ना (Concatenation)
-                    let successText = "✅ बोट रेस्पॉन्स प्राप्त हुआ!\\n\\n📝 बोट का मैसेज:\\n" + data.bot_msg;
-                    
-                    if (data.level >= 8) {
-                        successText += "\\n\\n🎉 स्तर (Level): " + data.level + " (8 या उससे ऊपर है)। स्टेप 2 अनलॉक हो गया है भाई!";
-                        resBox.className = 'response-box success';
-                        resBox.innerText = successText;
-                        
-                        document.getElementById('guestId').removeAttribute('disabled');
-                        document.getElementById('guestPass').removeAttribute('disabled');
-                        
-                        const loginBtn = document.getElementById('loginSubmitBtn');
-                        loginBtn.removeAttribute('disabled');
-                        loginBtn.className = 'btn-free';
-                        loginBtn.style.background = '#7f00ff';
-                        loginBtn.style.color = '#fff';
-                        
-                        verifiedUid = uid;
-                    } else {
-                        let errorText = successText + "\\n\\n❌ लॉगिन फेल! बोट के अनुसार आपका स्तर " + data.level + " है। प्रीमियम एक्सेस के लिए कम से कम लेवल 8 होना ज़रूरी है भाई।";
-                        resBox.className = 'response-box error';
-                        resBox.innerText = errorText;
+                    resultBox.style.display = 'block';
+                    playerDetails.innerText = data.bot_msg; // बोट का पूरा सैट किया हुआ मैसेज
+
+                    // अगर बोट ने आउटफिट की फोटो भेजी है, तो उसे लोड करना
+                    if (data.has_photo) {
+                        playerImg.src = "/api/get-photo?file_id=" + data.file_id;
+                        playerImg.style.display = 'block';
                     }
                 } else {
-                    resBox.className = 'response-box error';
-                    resBox.innerText = "❌ बोट से डेटा नहीं मिल सका। कारण: " + data.message;
+                    errorBox.style.display = 'block';
+                    errorBox.innerText = "❌ जानकारी नहीं मिल सकी: " + data.message;
                 }
             } catch (err) {
-                resBox.className = 'response-box error';
-                resBox.innerText = '❌ सर्वर से कनेक्ट करने में समस्या आई।';
-            }
-        });
-
-        document.getElementById('guestLoginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const guestId = document.getElementById('guestId').value;
-            const guestPass = document.getElementById('guestPass').value;
-            const resBox = document.getElementById('loginResponse');
-
-            resBox.style.display = 'block';
-            resBox.className = 'response-box success';
-            resBox.innerText = '🔄 डेटा सुरक्षित सेव किया जा रहा है...';
-
-            try {
-                const response = await fetch('/api/save-guest', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        uid: verifiedUid,
-                        guest_id: guestId,
-                        guest_pass: guestPass
-                    })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    resBox.className = 'response-box success';
-                    resBox.innerText = '🎉 लॉगिन सफल! गेस्ट अकाउंट का डेटा फाइल में सुरक्षित सेव हो गया है।';
-                } else {
-                    resBox.className = 'response-box error';
-                    resBox.innerText = '❌ डेटा सेव करने में समस्या आई।';
-                }
-            } catch (err) {
-                resBox.className = 'response-box error';
-                resBox.innerText = '❌ कनेक्शन एरर।';
+                loadingBox.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorBox.innerText = '❌ सर्वर से कनेक्ट करने में कोई तकनीकी खराबी आई भाई।';
             }
         });
     </script>
@@ -171,55 +131,49 @@ HTML_TEMPLATE = """
 """
 
 # ==================== PYROGRAM BACKGROUND LOGIC ============
-async def ask_info_bot(uid):
+async def get_bot_profile_data(uid):
     tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
     try:
         await tg_client.start()
         
-        try:
-            await tg_client.read_chat_history(INFO_BOT_USERNAME)
-        except:
-            pass
+        try: await tg_client.read_chat_history(INFO_BOT_USERNAME)
+        except: pass
 
-        # इंफो बोट को कमांड सेंड करना
+        # बोट को सीधा /get UID कमांड मारना
         await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
-        # बोट को रेस्पॉन्स देने के लिए पर्याप्त समय (8 सेकंड) देना
+        # बोट को इमेज और डेटा जनरेट करने के लिए 8 सेकंड का टाइम देना
         await asyncio.sleep(8)
         
         bot_response_text = ""
+        has_photo = False
+        file_id = ""
         
-        # चैट हिस्ट्री से बोट का बिल्कुल लेटेस्ट रिप्लाई ढूंढना
-        async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=3):
+        # बोट चैट का लेटेस्ट मैसेज देखना
+        async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
             if message.from_user and message.from_user.username == INFO_BOT_USERNAME:
-                if message.caption:
-                    bot_response_text = message.caption
+                # अगर बोट ने आउटफिट की फोटो भेजी है
+                if message.photo:
+                    has_photo = True
+                    file_id = message.photo.file_id
+                    bot_response_text = message.caption if message.caption else "इमेज प्राप्त हुई भाई!"
                     break
+                # अगर बोट ने सिर्फ टेक्स्ट भेजा है
                 elif message.text:
                     bot_response_text = message.text
                     break
-                
+                    
         await tg_client.stop()
         
         if bot_response_text:
-            # रेगुलर एक्सप्रेशन से बोट के टेक्स्ट में से लेवल निकालना
-            level_match = re.search(r'(?:Level|level|स्तर|Lv|LV)\s*[:\s]*\s*(\d+)', bot_response_text)
-            
-            if level_match:
-                level = int(level_match.group(1))
-            else:
-                # वैकल्पिक तरीका: टेक्स्ट में से 1 से 100 के बीच की संख्या निकालना
-                all_nums = re.findall(r'\b\d+\b', bot_response_text)
-                level = 0
-                for n in all_nums:
-                    val = int(n)
-                    if 1 <= val <= 100:
-                        level = val
-                        break
-                        
-            return {"success": True, "bot_msg": bot_response_text, "level": level}
+            return {
+                "success": True, 
+                "bot_msg": bot_response_text, 
+                "has_photo": has_photo, 
+                "file_id": file_id
+            }
         else:
-            return {"success": False, "message": "बॉट की तरफ से कोई रिप्लाई नहीं आया या टाइमआउट हो गया।"}
+            return {"success": False, "message": "बॉट की तरफ से रिप्लाई नहीं आया या टाइमआउट हुआ।"}
             
     except Exception as e:
         try: await tg_client.stop()
@@ -231,41 +185,46 @@ async def ask_info_bot(uid):
 def home():
     return render_template_string(HTML_TEMPLATE)
 
-@app.route('/api/tg-verify')
-def tg_verify():
+@app.route('/api/fetch-profile')
+def fetch_profile():
     uid = request.args.get('uid')
     if not uid:
-        return jsonify({"success": False, "message": "UID आवश्यक है"}), 400
+        return jsonify({"success": False, "message": "UID ज़रूरी है"}), 400
         
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(ask_info_bot(uid))
+    result = loop.run_until_complete(get_bot_profile_data(uid))
     loop.close()
     return jsonify(result)
 
-@app.route('/api/save-guest', methods=['POST'])
-def save_guest():
-    data = request.get_json()
-    uid = data.get('uid')
-    guest_id = data.get('guest_id')
-    guest_pass = data.get('guest_pass')
-    
-    try:
-        entry = f"UID: {uid} | Guest ID: {guest_id} | Password: {guest_pass}\n"
-        with open(DATA_FILE, "a", encoding="utf-8") as f:
-            f.write(entry)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+# टेलीग्राम सर्वर से इमेज डाउनलोड करके वेब स्क्रीन पर सर्व करने का रूट
+@app.route('/api/get-photo')
+def get_photo():
+    file_id = request.args.get('file_id')
+    if not file_id:
+        return "Missing file_id", 400
+        
+    async def download_tg_photo():
+        tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+        try:
+            await tg_client.start()
+            # फोटो को डायरेक्ट मेमोरी (Bytes) में डाउनलोड करना ताकि वेर्सेल पर परमानेंट स्टोर न करना पड़े
+            photo_bytes = await tg_client.download_media(file_id, in_memory=True)
+            await tg_client.stop()
+            return photo_bytes.getbuffer().tobytes()
+        except Exception as e:
+            try: await tg_client.stop()
+            except: pass
+            return None
 
-@app.route('/view-saved-accounts-kr')
-def view_accounts():
-    import os
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            content = f.read()
-        return f"<pre>{content}</pre>"
-    return "अभी तक कोई डेटा सेव नहीं हुआ है भाई!"
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    img_data = loop.run_until_complete(download_tg_photo())
+    loop.close()
+    
+    if img_data:
+        return app.response_class(img_data, mimetype='image/jpeg')
+    return "Image not found", 404
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
