@@ -11,7 +11,7 @@ API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
 # यहाँ अपने इंफो बोट का सही यूजरनेम बिना @ के लिखें
-INFO_BOT_USERNAME = "FreeFireInfoBot" 
+INFO_BOT_USERNAME = "FFPlayerInfoBot" 
 
 DATA_FILE = "/tmp/saved_accounts.txt"
 
