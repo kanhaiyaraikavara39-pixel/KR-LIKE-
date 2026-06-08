@@ -84,7 +84,6 @@ HTML_TEMPLATE = """
     <script>
         let verifiedUid = "";
 
-        // स्टेप 1: यूआईडी वेरिफिकेशन हैंडलर
         document.getElementById('verifyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const uid = document.getElementById('gameUid').value;
@@ -99,12 +98,14 @@ HTML_TEMPLATE = """
                 const data = await response.json();
                 
                 if (data.success) {
-                    resBox.className = 'response-box success';
-                    // 🎯 यहाँ बैकट्रिक्स (\`) का इस्तेमाल करके स्ट्रिंग को सही किया ताकि डेटा स्क्रीन पर दिखे
-                    resBox.innerText = `✅ बोट रेस्पॉन्स प्राप्त हुआ!\\n\\n📝 बोट का मैसेज:\\n\${data.bot_msg}`;
+                    // 🎯 कोट्स का झंझट खत्म करने के लिए डायरेक्ट स्ट्रिंग जोड़ना (Concatenation)
+                    let successText = "✅ बोट रेस्पॉन्स प्राप्त हुआ!\\n\\n📝 बोट का मैसेज:\\n" + data.bot_msg;
                     
                     if (data.level >= 8) {
-                        resBox.innerText += `\\n\\n🎉 स्तर (Level): \${data.level} (8 या उससे ऊपर है)। स्टेप 2 अनलॉक हो गया है भाई!`;
+                        successText += "\\n\\n🎉 स्तर (Level): " + data.level + " (8 या उससे ऊपर है)। स्टेप 2 अनलॉक हो गया है भाई!";
+                        resBox.className = 'response-box success';
+                        resBox.innerText = successText;
+                        
                         document.getElementById('guestId').removeAttribute('disabled');
                         document.getElementById('guestPass').removeAttribute('disabled');
                         
@@ -116,12 +117,13 @@ HTML_TEMPLATE = """
                         
                         verifiedUid = uid;
                     } else {
+                        let errorText = successText + "\\n\\n❌ लॉगिन फेल! बोट के अनुसार आपका स्तर " + data.level + " है। प्रीमियम एक्सेस के लिए कम से कम लेवल 8 होना ज़रूरी है भाई।";
                         resBox.className = 'response-box error';
-                        resBox.innerText += `\\n\\n❌ लॉगिन फेल! बोट के अनुसार आपका स्तर \${data.level} है। प्रीमियम एक्सेस के लिए कम से कम लेवल 8 होना ज़रूरी है भाई।`;
+                        resBox.innerText = errorText;
                     }
                 } else {
                     resBox.className = 'response-box error';
-                    resBox.innerText = `❌ बोट से डेटा नहीं मिल सका। कारण: \${data.message}`;
+                    resBox.innerText = "❌ बोट से डेटा नहीं मिल सका। कारण: " + data.message;
                 }
             } catch (err) {
                 resBox.className = 'response-box error';
@@ -129,7 +131,6 @@ HTML_TEMPLATE = """
             }
         });
 
-        // स्टेप 2: डेटा सेव करना
         document.getElementById('guestLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const guestId = document.getElementById('guestId').value;
@@ -175,23 +176,21 @@ async def ask_info_bot(uid):
     try:
         await tg_client.start()
         
-        # पुराना चैट इतिहास साफ या मार्क रीड करना ताकि पुराना मैसेज मिक्स न हो
         try:
             await tg_client.read_chat_history(INFO_BOT_USERNAME)
         except:
             pass
 
-        # इंफो बोट को कमांड भेजना
+        # इंफो बोट को कमांड सेंड करना
         await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
-        # बोट के रिप्लाई का इंतजार (7 सेकंड रुकना ताकि बोट फोटो/टेक्स्ट भेज सके)
-        await asyncio.sleep(7)
+        # बोट को रेस्पॉन्स देने के लिए पर्याप्त समय (8 सेकंड) देना
+        await asyncio.sleep(8)
         
         bot_response_text = ""
         
-        # बोट चैट से एकदम लेटेस्ट मैसेजेस निकालना
+        # चैट हिस्ट्री से बोट का बिल्कुल लेटेस्ट रिप्लाई ढूंढना
         async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=3):
-            # बोट का रिप्लाई या तो कैप्शन (अगर फोटो भेजी है) या नॉर्मल टेक्स्ट होगा
             if message.from_user and message.from_user.username == INFO_BOT_USERNAME:
                 if message.caption:
                     bot_response_text = message.caption
@@ -203,19 +202,18 @@ async def ask_info_bot(uid):
         await tg_client.stop()
         
         if bot_response_text:
-            # बोट के रिप्लाई में से लेवल (Level) नंबर ढूंढना
-            # यह 'Level : 55' या 'स्तर : 60' या 'Lv: 8' जैसे किसी भी फॉर्मेट से नंबर निकाल लेगा
+            # रेगुलर एक्सप्रेशन से बोट के टेक्स्ट में से लेवल निकालना
             level_match = re.search(r'(?:Level|level|स्तर|Lv|LV)\s*[:\s]*\s*(\d+)', bot_response_text)
             
             if level_match:
                 level = int(level_match.group(1))
             else:
-                # अगर सीधे नहीं मिला, तो पूरे मैसेज में से 1 से 100 के बीच का कोई भी वैलिड नंबर ढूंढना
+                # वैकल्पिक तरीका: टेक्स्ट में से 1 से 100 के बीच की संख्या निकालना
                 all_nums = re.findall(r'\b\d+\b', bot_response_text)
                 level = 0
                 for n in all_nums:
                     val = int(n)
-                    if 1 <= val <= 100:  # गेम का लेवल आमतौर पर 1 से 100 होता है
+                    if 1 <= val <= 100:
                         level = val
                         break
                         
@@ -239,7 +237,6 @@ def tg_verify():
     if not uid:
         return jsonify({"success": False, "message": "UID आवश्यक है"}), 400
         
-    # एसिंक फंक्शन को बिना एरर के रन करने के लिए नया लूप
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     result = loop.run_until_complete(ask_info_bot(uid))
