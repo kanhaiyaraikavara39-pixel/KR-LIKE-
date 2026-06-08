@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # आपकी असली API का यूआरएल और की
-API_BASE = "https://kanhaiya-raikwar.vercel.app/like"
+API_BASE = "https://kanhaiya-raikwar-ewj0gz9o8-kanhaiyaraikavara39-6133s-projects.vercel.app/"
 API_KEY = "ZEXYK"
 
 # वह फाइल जहां यूजर का गेस्ट आईडी और पासवर्ड सेव होगा
