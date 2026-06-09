@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template_string, jsonify
 import asyncio
+import threading
 from pyrogram import Client
 
 app = Flask(__name__)
@@ -10,6 +11,20 @@ API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
 INFO_BOT_USERNAME = "FreeFireInfoBot" 
+
+# ग्लोबल टेलीग्राम क्लाइंट (ताकि बार-बार लॉग इन का टाइम न बिगड़े)
+tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+
+# बैकग्राउंड में टेलीग्राम क्लाइंट को हमेशा एक्टिव रखने के लिए
+def start_tg_background():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(tg_client.start())
+    print("⚡ S.KANHAIYA TG CLIENT LIVE ALWAYS ⚡")
+    loop.run_forever()
+
+# ऐप शुरू होते ही बैकग्राउंड थ्रेड में टेलीग्राम चालू कर दें
+threading.Thread(target=start_tg_background, daemon=True).start()
 
 # ==================== HTML INTERFACE ====================
 HTML_TEMPLATE = """
@@ -97,12 +112,12 @@ HTML_TEMPLATE = """
                     playerDetails.innerText = data.bot_msg; 
                 } else {
                     errorBox.style.display = 'block';
-                    errorBox.innerText = "❌ गड़बड़: " + data.message;
+                    errorBox.innerText = "❌ जानकारी नहीं मिल सकी: " + data.message;
                 }
             } catch (err) {
                 loadingBox.style.display = 'none';
                 errorBox.style.display = 'block';
-                errorBox.innerText = '❌ सर्वर कनेक्शन टाइमआउट भाई। कृपया दोबारा कोशिश करें।';
+                errorBox.innerText = '❌ कनेक्शन स्लो होने के कारण टाइमआउट हुआ भाई। कृपया दोबारा प्रयास करें।';
             }
         });
     </script>
@@ -110,22 +125,19 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ==================== PYROGRAM LOGIC (VERCEL OPTIMIZED) ====================
+# ==================== PYROGRAM LOGIC ====================
 async def get_bot_text_data(uid):
-    # हर रिक्वेस्ट पर इन-मेमोरी फ्रेश क्लाइंट स्टार्ट होगा
-    tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
     try:
-        await tg_client.start()
-        
+        # पुराने मैसेजेस को रीड मार्क करना ताकि पुराना डेटा न उठाए
         try: await tg_client.read_chat_history(INFO_BOT_USERNAME)
         except: pass
 
-        # बोट को कमांड भेजना
+        # बोट को सीधा कमांड मारना
         sent_msg = await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
         bot_response_text = ""
         
-        # ⏱️ बोट के रिपॉन्स का 4 सेकंड तक तेज़ी से इंतज़ार करना
+        # ⏱️ बोट के रिप्लाई का सिर्फ 4 सेकंड तेज़ी से लूप में इंतज़ार करना
         for _ in range(4):
             await asyncio.sleep(1)
             async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
@@ -137,17 +149,13 @@ async def get_bot_text_data(uid):
                     break
             if bot_response_text:
                 break
-                
-        await tg_client.stop()
         
         if bot_response_text:
             return {"success": True, "bot_msg": bot_response_text}
         else:
-            return {"success": False, "message": "बॉट ने टाइम पर रिप्लाई नहीं दिया। टेलीग्राम पर बॉट चालू है ना भाई?"}
+            return {"success": False, "message": "बॉट ने समय पर प्रतिक्रिया नहीं दी। टेलीग्राम पर बोट की स्पीड चेक करें भाई।"}
             
     except Exception as e:
-        try: await tg_client.stop()
-        except: pass
         return {"success": False, "message": str(e)}
 
 # ==================== FLASK ROUTES ====================
