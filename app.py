@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template_string, jsonify
 import asyncio
+import threading
 from pyrogram import Client
 
 app = Flask(__name__)
@@ -9,7 +10,21 @@ API_ID = 36111584
 API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
 STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
 
-INFO_BOT_USERNAME = "FFPlayerInfoBot" 
+INFO_BOT_USERNAME = "FreeFireInfoBot" 
+
+# ग्लोबल टेलीग्राम क्लाइंट (ताकि बार-बार लॉग इन का टाइम न बिगड़े)
+tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+
+# बैकग्राउंड में टेलीग्राम क्लाइंट को हमेशा एक्टिव रखने के लिए
+def start_tg_background():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(tg_client.start())
+    print("⚡ S.KANHAIYA TG CLIENT LIVE ALWAYS ⚡")
+    loop.run_forever()
+
+# ऐप शुरू होते ही बैकग्राउंड थ्रेड में टेलीग्राम चालू कर दें
+threading.Thread(target=start_tg_background, daemon=True).start()
 
 # ==================== HTML INTERFACE ====================
 HTML_TEMPLATE = """
@@ -32,15 +47,13 @@ HTML_TEMPLATE = """
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; margin-top: 5px; }
         button:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
         
-        /* 🌀 एनिमेशन बॉक्स */
         .loading-box { display: none; margin-top: 20px; padding: 20px; }
         .spinner { width: 45px; height: 45px; border: 4px solid #3d307a; border-top: 4px solid #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loading-text { color: #00ffcc; font-size: 14px; font-weight: 500; }
 
-        /* 📊 रिजल्ट बॉक्स */
         .result-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(0, 255, 204, 0.05); border: 1px solid #3d307a; text-align: left; }
-        .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 15px; border-radius: 6px; border-left: 4px solid #ff007f; font-family: monospace; }
+        .info-text { white-space: pre-line; line-height: 1.6; font-size: 15px; color: #e0e0e0; background: #0f0c20; padding: 15px; border-radius: 6px; border-left: 4px solid #ff007f; }
         .error-box { display: none; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(255, 0, 127, 0.1); border: 1px solid #ff007f; color: #ff007f; font-size: 14px; text-align: left; }
         
         .footer { text-align: center; font-size: 12px; color: #666; margin-top: 10px; letter-spacing: 1px; }
@@ -104,7 +117,7 @@ HTML_TEMPLATE = """
             } catch (err) {
                 loadingBox.style.display = 'none';
                 errorBox.style.display = 'block';
-                errorBox.innerText = '❌ सर्वर से कनेक्ट करने में कोई तकनीकी खराबी आई भाई।';
+                errorBox.innerText = '❌ कनेक्शन स्लो होने के कारण टाइमआउट हुआ भाई। कृपया दोबारा प्रयास करें।';
             }
         });
     </script>
@@ -114,43 +127,35 @@ HTML_TEMPLATE = """
 
 # ==================== PYROGRAM LOGIC ====================
 async def get_bot_text_data(uid):
-    tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
     try:
-        await tg_client.start()
-        
+        # पुराने मैसेजेस को रीड मार्क करना ताकि पुराना डेटा न उठाए
         try: await tg_client.read_chat_history(INFO_BOT_USERNAME)
         except: pass
 
-        # बोट को कमांड भेजना
+        # बोट को सीधा कमांड मारना
         sent_msg = await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
         
         bot_response_text = ""
         
-        # ⏱️ फ़ास्ट चेकिंग लूप (अधिकतम 5 सेकंड इंतज़ार)
-        for _ in range(5):
+        # ⏱️ बोट के रिप्लाई का सिर्फ 4 सेकंड तेज़ी से लूप में इंतज़ार करना
+        for _ in range(4):
             await asyncio.sleep(1)
             async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=2):
                 if message.from_user and message.from_user.username == INFO_BOT_USERNAME and message.id > sent_msg.id:
-                    # अगर बोट ने फोटो के साथ टेक्स्ट (Caption) भेजा है
                     if message.photo and message.caption:
                         bot_response_text = message.caption
-                    # अगर बोट ने सिर्फ नॉर्मल टेक्स्ट भेजा है
                     elif message.text:
                         bot_response_text = message.text
                     break
             if bot_response_text:
                 break
-                
-        await tg_client.stop()
         
         if bot_response_text:
             return {"success": True, "bot_msg": bot_response_text}
         else:
-            return {"success": False, "message": "बॉट ने टाइम पर जवाब नहीं दिया। कृपया दोबारा कोशिश करें भाई।"}
+            return {"success": False, "message": "बॉट ने समय पर प्रतिक्रिया नहीं दी। टेलीग्राम पर बोट की स्पीड चेक करें भाई।"}
             
     except Exception as e:
-        try: await tg_client.stop()
-        except: pass
         return {"success": False, "message": str(e)}
 
 # ==================== FLASK ROUTES ====================
