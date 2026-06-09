@@ -1,3 +1,4 @@
-Flask==3.0.2
-pyrogram==2.0.10
-tgcrypto==1.2.5
+fastapi
+uvicorn
+aiohttp
+python-multipart

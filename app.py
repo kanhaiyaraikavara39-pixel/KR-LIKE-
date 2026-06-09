@@ -1,186 +1,343 @@
-from flask import Flask, request, render_template_string, jsonify
-import asyncio
-import re
-from pyrogram import Client
+import os
+import json
+import base64
+import aiohttp
+from datetime import date
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, JSONResponse
 
-app = Flask(__name__)
+app = FastAPI()
 
-# ==================== TELEGRAM CONFIG ====================
-API_ID = 36111584
-API_HASH = '6f0e6729043de10d48250cc2bc613a6f'
-STRING_SESSION = "BQInBOAAOgLtSj7-SKUGoo8aRfWEKh6FhHxMUgQonz6Ub6rQlPY1gul0xKn1uW8O1lw6dcs5sD1ASz0-uvFw_SgTzeNU4Qkedeyewv09fn0As4Gk5q2BWF9sKqoJFK-qB1_QZ5qmn-BOKtXo-j2P-TtiX4h4UjkcU7otYsm7reqzUmpcpasMWOzegDVEikyyobuPRLqCHQe0erFCs354ojUXz7JpZOcPUmUViScbjw3kj0qSbrTQRPv7WjYNll1KLWkmqkoTIkX8lqbUfPey1pkiDJjQiDWo3itR2Pb5uEg5LvmUvbGQfkANwv7w0DEqasddjKulYFoduLiHhoT6M8Sl0iXwOwAAAAGHwtM4AA"
+# ============ CONFIGURATION ============
+API_URL = "https://kanhaiya-raikwar.vercel.app/"
+ENCODED_KEY = "WkVYWFk="
+API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
-INFO_BOT_USERNAME = "FreeFireInfoBot" 
+# लोकल स्टोरेज के लिए फाइलें
+DATA_FILES = {
+    'stats': '/tmp/daily_stats.json',
+    'users': '/tmp/user_limits.json',
+    'config': '/tmp/bot_config.json'
+}
 
-# ==================== HTML INTERFACE ====================
+bot_status = "on"
+daily_stats = {}
+user_limits = {}
+daily_limit = 2
+
+def load_data():
+    global daily_stats, user_limits, bot_status, daily_limit
+    try:
+        with open(DATA_FILES['stats'], 'r') as f: daily_stats = json.load(f)
+    except: daily_stats = {}
+    try:
+        with open(DATA_FILES['users'], 'r') as f: user_limits = json.load(f)
+    except: user_limits = {}
+    try:
+        with open(DATA_FILES['config'], 'r') as f:
+            cfg = json.load(f)
+            bot_status = cfg.get('status', 'on')
+            daily_limit = cfg.get('limit', 2)
+    except:
+        bot_status, daily_limit = 'on', 2
+
+def save_all():
+    try:
+        with open(DATA_FILES['stats'], 'w') as f: json.dump(daily_stats, f, indent=2)
+        with open(DATA_FILES['users'], 'w') as f: json.dump(user_limits, f, indent=2)
+        with open(DATA_FILES['config'], 'w') as f: json.dump({'status': bot_status, 'limit': daily_limit}, f, indent=2)
+    except:
+        pass  # Vercel Serverless में कभी-कभी /tmp के अलावा राइटिंग ब्लॉक होती है
+
+load_data()
+
+def today_str(): 
+    return str(date.today())
+
+def can_user_like(ip_address):
+    t = today_str()
+    if ip_address not in user_limits or user_limits[ip_address]['date'] != t:
+        user_limits[ip_address] = {'date': t, 'count': 0}
+        return True
+    return user_limits[ip_address]['count'] < daily_limit
+
+def update_user_like(ip_address):
+    t = today_str()
+    if ip_address not in user_limits or user_limits[ip_address]['date'] != t:
+        user_limits[ip_address] = {'date': t, 'count': 0}
+    user_limits[ip_address]['count'] += 1
+
+    if t not in daily_stats:  
+        daily_stats[t] = {'total': 0, 'ips': {}}  
+    daily_stats[t]['total'] += 1  
+    if ip_address not in daily_stats[t]['ips']:  
+        daily_stats[t]['ips'][ip_address] = 0  
+    daily_stats[t]['ips'][ip_address] += 1  
+    save_all()
+
+# ============ HTML + CSS + JS (सिंगल स्ट्रिंग में इंटरफेस) ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👑 S.KANHAIYA VIP TRACKER</title>
+    <title>Free Fire Like Booster</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #0f0c20; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; justify-content: center; }
-        .container { width: 100%; max-width: 500px; background: #1a1635; padding: 25px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #3d307a; margin-bottom: 20px; }
-        h1 { text-align: center; color: #00ffcc; margin-bottom: 10px; font-size: 24px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
-        p.subtitle { text-align: center; color: #aaa; font-size: 14px; margin-bottom: 25px; }
-        .section-title { font-size: 18px; color: #ff007f; margin-bottom: 15px; border-bottom: 1px solid #3d307a; padding-bottom: 5px; text-align: center;}
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: #ccc; font-size: 14px; }
-        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3d307a; background: #0f0c20; color: #fff; font-size: 16px; outline: none; text-align: center; }
-        input:focus { border-color: #00ffcc; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
-        .btn-free { background: linear-gradient(45deg, #00ffcc, #0099ff); color: #0f0c20; }
-        .btn-free:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(0,255,204,0.4); }
-        .response-box { margin-top: 15px; padding: 15px; border-radius: 8px; font-size: 14px; display: none; line-height: 1.6; white-space: pre-line; text-align: left; }
-        .success { background: rgba(0, 255, 204, 0.1); border: 1px solid #00ffcc; color: #00ffcc; }
-        .error { background: rgba(255, 0, 127, 0.1); border: 1px solid #ff007f; color: #ff007f; }
-        
-        /* Loading Animation CSS */
-        .loader-container { display: none; flex-direction: column; align-items: center; margin-top: 15px; }
-        .loader { border: 4px solid #0f0c20; border-top: 4px solid #00ffcc; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { color: #00ffcc; font-size: 14px; text-shadow: 0 0 5px rgba(0,255,204,0.2); }
-        
-        .footer { text-align: center; font-size: 12px; color: #666; margin-top: 10px; letter-spacing: 1px; }
+        :root {{
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #f97316;
+            --primary-hover: #ea580c;
+            --text-main: #f8fafc;
+        }}
+        body {{
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }}
+        .container {{
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid #334155;
+        }}
+        h1 {{
+            text-align: center;
+            color: var(--primary);
+            font-size: 26px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }}
+        .subtitle {{
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }}
+        .stats-box {{
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            border-left: 4px solid var(--primary);
+        }}
+        .input-group {{
+            margin-bottom: 18px;
+        }}
+        .input-group label {{
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #cbd5e1;
+        }}
+        .input-group input, .input-group select {{
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            box-sizing: border-box;
+            font-size: 16px;
+        }}
+        .input-group input:focus {{
+            border-color: var(--primary);
+            outline: none;
+        }}
+        button {{
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }}
+        button:hover {{
+            background: var(--primary-hover);
+        }}
+        #result {{
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+        }}
+        .success-res {{ background: #065f46; border: 1px solid #059669; }}
+        .error-res {{ background: #991b1b; border: 1px solid #dc2626; }}
+        .loader {{
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }}
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>👑 S.KANHAIYA SERVICES</h1>
-        <p class="subtitle">इंस्टेंट प्लेयर इनफार्मेशन ट्रैकर</p>
-        
-        <div class="section-title">🔍 ENTER GAME UID</div>
-        <form id="verifyForm">
-            <div class="form-group">
-                <input type="number" id="gameUid" placeholder="यहाँ प्लेयर यूआईडी दर्ज करें" required>
-            </div>
-            <button type="submit" class="btn-free">बोट से डेटा निकालें</button>
-        </form>
+<div class="container">
+    <h1><i class="fa-solid fa-fire text-amber-500"></i> FF LIKE BOOSTER</h1>
+    <div class="subtitle">वेबसाइट से सीधे फ्री फायर लाइक्स बढ़ाएं</div>
 
-        <div id="loaderSection" class="loader-container">
-            <div class="loader"></div>
-            <div class="loading-text">🔄 टेलीग्राम बोट से जानकारी निकाली जा रही है... कृपया प्रतीक्षा करें...</div>
-        </div>
-
-        <div id="verifyResponse" class="response-box"></div>
+    <div class="stats-box">
+        <span>स्टेटस: <strong style="color: #4ade80;">{bot_status}</strong></span>
+        <span>आज बचे लाइक्स: <strong>{remaining} / {daily_limit}</strong></span>
     </div>
 
-    <div class="footer">⚡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴋ.ʀ sᴇʀᴠɪ́ᴄᴇ</div>
+    <form id="likeForm">
+        <div class="input-group">
+            <label><i class="fa-solid fa-globe"></i> क्षेत्र चुनें (Region)</label>
+            <select name="region" id="region">
+                <option value="IND">India (IND)</option>
+                <option value="BD">Bangladesh (BD)</option>
+                <option value="PK">Pakistan (PK)</option>
+                <option value="USA">USA</option>
+                <option value="BR">Brazil</option>
+            </select>
+        </div>
 
-    <script>
-        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const uid = document.getElementById('gameUid').value;
-            const resBox = document.getElementById('verifyResponse');
-            const loader = document.getElementById('loaderSection');
+        <div class="input-group">
+            <label><i class="fa-solid fa-id-card"></i> प्लेयर UID</label>
+            <input type="text" name="uid" id="uid" placeholder="यहाँ अपनी गेम UID डालें..." required>
+        </div>
+
+        <button type="submit" id="submitBtn">लाइक प्रोसेस करें <i class="fa-solid fa-paper-plane"></i></button>
+    </form>
+
+    <div class="loader" id="loader">
+        <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: var(--primary); margin-bottom: 10px;"></i>
+        <p style="margin:0;">लाइक भेजे जा रहे हैं, पेज को रिफ्रेश न करें...</p>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    document.getElementById('likeForm').addEventListener('submit', async (e) => {{
+        e.preventDefault();
+        
+        const form = e.target;
+        const btn = document.getElementById('submitBtn');
+        const loader = document.getElementById('loader');
+        const resultDiv = document.getElementById('result');
+        
+        resultDiv.style.display = 'none';
+        btn.style.display = 'none';
+        loader.style.display = 'block';
+        
+        const formData = new FormData(form);
+        
+        try {{
+            const response = await fetch('/api/like', {{
+                method: 'POST',
+                body: formData
+            }});
+            const data = await response.json();
             
-            // UI रीसेट करें और एनिमेशन दिखाएं
-            resBox.style.display = 'none';
-            loader.style.display = 'flex';
-
-            try {
-                const response = await fetch('/api/tg-verify?uid=' + uid);
-                const data = await response.json();
-                
-                // एनिमेशन छुपाएं
-                loader.style.display = 'none';
-                resBox.style.display = 'block';
-                
-                if (data.success) {
-                    resBox.className = 'response-box success';
-                    resBox.innerText = "📋 प्लेयर प्रोफाइल डेटा मिल गया भाई!\\n\\n" + data.bot_msg + "\\n\\n🎯 निकाला गया स्तर (Level): " + data.level;
-                } else {
-                    resBox.className = 'response-box error';
-                    resBox.innerText = "❌ त्रुटि: " + data.message;
-                }
-            } catch (err) {
-                loader.style.display = 'none';
-                resBox.style.display = 'block';
-                resBox.className = 'response-box error';
-                resBox.innerText = '❌ सर्वर से रिस्पांस प्राप्त करने में समस्या आई।';
-            }
-        });
-    </script>
+            loader.style.display = 'none';
+            btn.style.display = 'block';
+            resultDiv.style.display = 'block';
+            
+            if (data.status === 'success') {{
+                resultDiv.className = 'success-res';
+                resultDiv.innerHTML = `
+                    <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
+                    <b>प्लेयर नाम:</b> ${{data.player}}<br>
+                    <b>UID:</b> <code>${{data.uid}}</code><br>
+                    <b>लेवल:</b> ${{data.level}}<br>
+                    <b>मिले लाइक्स:</b> +${{data.given}}<br>
+                    <b>टोटल लाइक्स:</b> ${{data.before}} ➔ ${{data.after}}
+                `;
+            }} else {{
+                resultDiv.className = 'error-res';
+                resultDiv.innerHTML = `❌ ${{data.message}}`;
+            }}
+        }} catch (error) {{
+            loader.style.display = 'none';
+            btn.style.display = 'block';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'error-res';
+            resultDiv.innerHTML = `❌ सर्वर डाउन है या कनेक्शन टूट गया है।`;
+        }}
+    }});
+</script>
 </body>
 </html>
 """
 
-# ==================== PYROGRAM BACKGROUND LOGIC ============
-async def ask_info_bot(uid):
-    tg_client = Client("kr_web_client", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION, in_memory=True)
+# ============ ROUTES ============
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    client_ip = request.client.host or "127.0.0.1"
+    t = today_str()
+    used = user_limits.get(client_ip, {}).get('count', 0) if client_ip in user_limits and user_limits[client_ip]['date'] == t else 0
+    remaining = daily_limit - used
+    
+    # HTML को डायनामिक डेटा के साथ रेंडर करना
+    return HTML_TEMPLATE.format(
+        bot_status=bot_status.upper(),
+        remaining=remaining,
+        daily_limit=daily_limit
+    )
+
+@app.post("/api/like")
+async def send_like(request: Request, region: str = Form(...), uid: str = Form(...)):
+    if bot_status == "off":
+        return JSONResponse({"status": "error", "message": "वेबसाइट अभी मेंटेनेंस में है।"})
+    
+    client_ip = request.client.host or "127.0.0.1"
+    region = region.upper()
+    
+    if not uid.isdigit():
+        return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
+        
+    if not can_user_like(client_ip):
+        return JSONResponse({"status": "error", "message": "आज की आपकी लिमिट खत्म हो चुकी है! कल आएं।"})
+
     try:
-        await tg_client.start()
-        
-        try:
-            await tg_client.read_chat_history(INFO_BOT_USERNAME)
-        except:
-            pass
-
-        await tg_client.send_message(INFO_BOT_USERNAME, f"/get {uid}")
-        
-        # बोट रिप्लाई के लिए थोड़ा इंतजार
-        await asyncio.sleep(7)
-        
-        bot_response_text = ""
-        
-        async for message in tg_client.get_chat_history(INFO_BOT_USERNAME, limit=3):
-            if message.from_user and message.from_user.username == INFO_BOT_USERNAME:
-                if message.caption:
-                    bot_response_text = message.caption
-                    break
-                elif message.text:
-                    bot_response_text = message.text
-                    break
-                
-        await tg_client.stop()
-        
-        if bot_response_text:
-            # 🎯 सुधरा हुआ नियम: 'Prime Level' को छोड़कर सिर्फ असली लेवल (जैसे Level: 55 या स्तर: 60) को ही पकड़ेगा
-            # यह 'prime' शब्द के ठीक बाद वाले नंबर्स को नजरअंदाज करेगा
-            cleaned_text = re.sub(r'(?i)prime\s*(?:level|lv)?\s*[:\s]*\d+', '', bot_response_text)
-            
-            level_match = re.search(r'(?:Level|level|स्तर|Lv|LV)\s*[:\s]*\s*(\d+)', cleaned_text)
-            
-            if level_match:
-                level = int(level_match.group(1))
-            else:
-                all_nums = re.findall(r'\b\d+\b', cleaned_text)
-                level = "नहीं मिला"
-                for n in all_nums:
-                    val = int(n)
-                    if 1 <= val <= 100:
-                        level = val
-                        break
-                        
-            return {"success": True, "bot_msg": bot_response_text, "level": level}
-        else:
-            return {"success": False, "message": "बॉट की तरफ से कोई रिप्लाई नहीं आया या टाइमआउट हो गया।"}
-            
+        url = f"{API_URL}like?uid={uid}&region={region}&key={API_KEY}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    api_status = data.get('status')
+                    
+                    if api_status == 1:
+                        update_user_like(client_ip)
+                        return JSONResponse({
+                            "status": "success",
+                            "player": data.get('PlayerNickname', 'Unknown'),
+                            "uid": data.get('UID', uid),
+                            "region": data.get('Region', region),
+                            "level": data.get('Level', 'N/A'),
+                            "given": data.get('LikesGivenByAPI', 0),
+                            "before": data.get('LikesbeforeCommand', 0),
+                            "after": data.get('LikesafterCommand', 0)
+                        })
+                    elif api_status == 2:
+                        return JSONResponse({"status": "error", "message": "इस UID की आज की API लिमिट खत्म हो गई है।"})
+                    else:
+                        return JSONResponse({"status": "error", "message": "मुख्य सर्वर से गलत रिस्पॉन्स मिला।"})
+                else:
+                    return JSONResponse({"status": "error", "message": f"सर्वर एरर कोड: HTTP {resp.status}"})
     except Exception as e:
-        try: await tg_client.stop()
-        except: pass
-        return {"success": False, "message": str(e)}
-
-# ==================== FLASK ROUTES ====================
-@app.route('/')
-def home():
-    return render_template_string(HTML_TEMPLATE)
-
-@app.route('/api/tg-verify')
-def tg_verify():
-    uid = request.args.get('uid')
-    if not uid:
-        return jsonify({"success": False, "message": "UID आवश्यक है"}), 400
-        
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(ask_info_bot(uid))
-    loop.close()
-    return jsonify(result)
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+        return JSONResponse({"status": "error", "message": f"कनेक्शन फ़ेल: {str(e)}"})
