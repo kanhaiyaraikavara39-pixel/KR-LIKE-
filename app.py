@@ -14,7 +14,6 @@ INFO_API_URL = "https://s-kanhaiya-ff-info.vercel.app/player-info"
 ENCODED_KEY = "WkVYWFk="
 API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
-# लोकल स्टोरेज के लिए फाइलें
 DATA_FILES = {
     'stats': '/tmp/daily_stats.json',
     'users': '/tmp/user_limits.json',
@@ -76,7 +75,7 @@ def update_user_like(ip_address):
     daily_stats[t]['ips'][ip_address] += 1  
     save_all()
 
-# ============ HTML + CSS + JS (सिंगल इंटरफेस) ============
+# ============ HTML + CSS + JS ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -212,7 +211,6 @@ HTML_TEMPLATE = """
         }}
         .error-res {{ background: #991b1b; border: 1px solid #dc2626; }}
         
-        /* क्लीन इन्फो डिजाइन */
         .info-header {{
             color: #67e8f9;
             font-size: 18px;
@@ -352,7 +350,6 @@ HTML_TEMPLATE = """
                 }} else {{
                     resultDiv.className = 'info-res';
                     
-                    // साफ़ और व्यवस्थित HTML बनाना
                     let infoHTML = `
                         <div class="info-header">
                             <i class="fa-solid fa-user-shield"></i> प्लेयर प्रोफाइल कार्ड
@@ -434,7 +431,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- 1. प्लेयर इन्फो एक्शन (फिल्टर्ड और क्लीन डेटा) ----
+    # ---- 1. प्लेयर इन्फो एक्शन ----
     if action == "info":
         try:
             url = f"{INFO_API_URL}?region={region}&uid={uid}"
@@ -443,28 +440,31 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                     if resp.status == 200:
                         raw_data = await resp.json()
                         
-                        # कचरा डेटा में से काम की चीज़ें छाँटना
-                        basic_info = raw_data.get("BasicInfo", {})
-                        social_info = raw_data.get("socialInfo", {})
-                        credit_info = raw_data.get("creditScoreInfo", {})
+                        # केस-इन्सेन्सिटिव (बड़े-छोटे अक्षर) हैंडलिंग ताकि डेटा मिस न हो
+                        basic_info = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
+                        social_info = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
+                        credit_info = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
                         
-                        # टाइमस्टैम्प को पढ़ने योग्य तारीख में बदलना
-                        last_login_ts = basic_info.get("lastLoginAt", 0)
+                        # नाम और लेवल निकालने के सारे संभावित तरीके (ताकि N/A न आए)
+                        nickname = basic_info.get("nickname") or basic_info.get("Nickname") or raw_data.get("nickname") or "Unknown"
+                        level = basic_info.get("level") or basic_info.get("Level") or raw_data.get("level") or "N/A"
+                        likes = basic_info.get("liked") or basic_info.get("Liked") or basic_info.get("likes") or 0
+                        
+                        last_login_ts = basic_info.get("lastLoginAt") or basic_info.get("lastLogin") or 0
                         try:
                             last_login_date = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
                         except:
                             last_login_date = "N/A"
                             
-                        # साफ़ किया हुआ सुंदर डेटा डिक्शनरी
                         clean_profile = {
-                            "nickname": basic_info.get("nickname", "Unknown"),
-                            "uid": basic_info.get("accountId", uid),
+                            "nickname": nickname,
+                            "uid": basic_info.get("accountId") or uid,
                             "region": basic_info.get("region", region.upper()),
-                            "level": basic_info.get("level", "N/A"),
-                            "likes": basic_info.get("liked", 0),
-                            "credit_score": credit_info.get("creditScore", "N/A"),
+                            "level": level,
+                            "likes": likes,
+                            "credit_score": credit_info.get("creditScore") or credit_info.get("creditscore") or "N/A",
                             "last_login": last_login_date,
-                            "signature": social_info.get("signature", "No Signature Set")
+                            "signature": social_info.get("signature") or "No Signature Set"
                         }
                         
                         return JSONResponse({
@@ -480,7 +480,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
-            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक限制 खत्म हो चुकी है! प्लेयर इन्फो अभी भी चेक कर सकते हैं।"})
+            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक लिमिट खत्म हो चुकी है! प्लेयर इन्फो अभी भी चेक कर सकते हैं।"})
 
         try:
             url = f"{LIKE_API_URL}like?uid={uid}&region={region_upper}&key={API_KEY}"
