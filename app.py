@@ -2,7 +2,7 @@ import os
 import json
 import base64
 import aiohttp
-from datetime import date
+from datetime import date, datetime
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -204,20 +204,54 @@ HTML_TEMPLATE = """
             word-wrap: break-word;
         }}
         .success-res {{ background: #065f46; border: 1px solid #059669; }}
-        .info-res {{ background: #1e3a8a; border: 1px solid #2563eb; }}
+        .info-res {{ 
+            background: #0f172a; 
+            border: 1px solid #2563eb; 
+            padding: 18px;
+            border-radius: 12px;
+        }}
         .error-res {{ background: #991b1b; border: 1px solid #dc2626; }}
+        
+        /* क्लीन इन्फो डिजाइन */
+        .info-header {{
+            color: #67e8f9;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .info-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #1e293b;
+        }}
+        .info-label {{
+            color: #94a3b8;
+            font-weight: 500;
+        }}
+        .info-value {{
+            color: #f8fafc;
+            font-weight: bold;
+        }}
+        .info-sig {{
+            background: rgba(255,255,255,0.05);
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-style: italic;
+            color: #cbd5e1;
+            font-size: 13px;
+        }}
+        
         .loader {{
             display: none;
             text-align: center;
             margin-top: 15px;
-        }}
-        pre {{
-            margin: 0;
-            white-space: pre-wrap;
-            font-family: monospace;
-            background: rgba(0,0,0,0.2);
-            padding: 8px;
-            border-radius: 4px;
         }}
     </style>
 </head>
@@ -274,14 +308,12 @@ HTML_TEMPLATE = """
         const loader = document.getElementById('loader');
         const loaderText = document.getElementById('loaderText');
         const resultDiv = document.getElementById('result');
-        const form = document.getElementById('toolForm');
 
         if (!uid.trim()) {{
             alert("कृपया पहले UID दर्ज करें!");
             return;
         }}
 
-        // UI Reset
         resultDiv.style.display = 'none';
         loader.style.display = 'block';
         
@@ -319,16 +351,45 @@ HTML_TEMPLATE = """
                     `;
                 }} else {{
                     resultDiv.className = 'info-res';
-                    // अगर API JSON डेटा देती है तो उसे सुंदर फॉर्मेट में दिखाना
-                    let infoHTML = `<h3 style="margin:0 0 10px 0; color: #67e8f9;"><i class="fa-solid fa-user"></i> प्लेयर इनफ़ॉर्मेशन</h3>`;
                     
-                    if (typeof data.info === 'object') {{
-                        for (const [key, value] of Object.entries(data.info)) {{
-                            infoHTML += `<b>${{key}}:</b> ${{JSON.stringify(value)}}<br>`;
-                        }}
-                    }} else {{
-                        infoHTML += `<pre>${{data.info}}</pre>`;
-                    }}
+                    // साफ़ और व्यवस्थित HTML बनाना
+                    let infoHTML = `
+                        <div class="info-header">
+                            <i class="fa-solid fa-user-shield"></i> प्लेयर प्रोफाइल कार्ड
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">निकनेम (Name):</span>
+                            <span class="info-value" style="color: #f59e0b;">${{data.info.nickname}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">गेम UID:</span>
+                            <span class="info-value">${{data.info.uid}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">क्षेत्र (Region):</span>
+                            <span class="info-value">${{data.info.region}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">लेवल (Level):</span>
+                            <span class="info-value" style="color: #4ade80;">${{data.info.level}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">कुल लाइक्स (Likes):</span>
+                            <span class="info-value" style="color: #ec4899;"><i class="fa-solid fa-heart"></i> ${{data.info.likes}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">क्रेडिट स्कोर:</span>
+                            <span class="info-value">${{data.info.credit_score}}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">आखिरी बार ऑनलाइन:</span>
+                            <span class="info-value">${{data.info.last_login}}</span>
+                        </div>
+                        <div class="info-row" style="border:none;">
+                            <span class="info-label">सिग्नेचर (Signature):</span>
+                        </div>
+                        <div class="info-sig">${{data.info.signature}}</div>
+                    `;
                     resultDiv.innerHTML = infoHTML;
                 }}
             }} else {{
@@ -368,27 +429,47 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
         return JSONResponse({"status": "error", "message": "वेबसाइट अभी मेंटेनेंस में है।"})
     
     client_ip = request.client.host or "127.0.0.1"
-    region = region.lower() # इन्फो एपीआई के लिए स्मॉल केस सेफ रहेगा
+    region = region.lower()
     
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- 1. प्लेयर इन्फो एक्शन ----
+    # ---- 1. प्लेयर इन्फो एक्शन (फिल्टर्ड और क्लीन डेटा) ----
     if action == "info":
         try:
-            # आपकी इन्फो एपीआई यूआरएल कॉलिंग
             url = f"{INFO_API_URL}?region={region}&uid={uid}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=12)) as resp:
                     if resp.status == 200:
+                        raw_data = await resp.json()
+                        
+                        # कचरा डेटा में से काम की चीज़ें छाँटना
+                        basic_info = raw_data.get("BasicInfo", {})
+                        social_info = raw_data.get("socialInfo", {})
+                        credit_info = raw_data.get("creditScoreInfo", {})
+                        
+                        # टाइमस्टैम्प को पढ़ने योग्य तारीख में बदलना
+                        last_login_ts = basic_info.get("lastLoginAt", 0)
                         try:
-                            info_data = await resp.json()
+                            last_login_date = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
                         except:
-                            info_data = await resp.text() # अगर JSON न हो तो टेक्स्ट ले लेगी
+                            last_login_date = "N/A"
+                            
+                        # साफ़ किया हुआ सुंदर डेटा डिक्शनरी
+                        clean_profile = {
+                            "nickname": basic_info.get("nickname", "Unknown"),
+                            "uid": basic_info.get("accountId", uid),
+                            "region": basic_info.get("region", region.upper()),
+                            "level": basic_info.get("level", "N/A"),
+                            "likes": basic_info.get("liked", 0),
+                            "credit_score": credit_info.get("creditScore", "N/A"),
+                            "last_login": last_login_date,
+                            "signature": social_info.get("signature", "No Signature Set")
+                        }
                         
                         return JSONResponse({
                             "status": "success",
-                            "info": info_data
+                            "info": clean_profile
                         })
                     else:
                         return JSONResponse({"status": "error", "message": f"इन्फो एपीआई एरर: HTTP {resp.status}"})
@@ -399,7 +480,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
-            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक लिमिट खत्म हो चुकी है! प्लेयर इन्फो अभी भी चेक कर सकते हैं।"})
+            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक限制 खत्म हो चुकी है! प्लेयर इन्फो अभी भी चेक कर सकते हैं।"})
 
         try:
             url = f"{LIKE_API_URL}like?uid={uid}&region={region_upper}&key={API_KEY}"
