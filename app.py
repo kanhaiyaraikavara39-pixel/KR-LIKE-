@@ -99,7 +99,7 @@ HTML_TEMPLATE = """
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -107,12 +107,13 @@ HTML_TEMPLATE = """
         }}
         .container {{
             background: var(--card-bg);
-            padding: 30px;
+            padding: 25px;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 480px;
+            max-width: 500px;
             border: 1px solid #334155;
+            box-sizing: border-box;
         }}
         h1 {{
             text-align: center;
@@ -181,76 +182,87 @@ HTML_TEMPLATE = """
             justify-content: center;
             gap: 8px;
         }}
-        .btn-like {{
-            background: var(--primary);
-        }}
-        .btn-like:hover {{
-            background: var(--primary-hover);
-        }}
-        .btn-info {{
-            background: var(--secondary);
-        }}
-        .btn-info:hover {{
-            background: var(--secondary-hover);
-        }}
+        .btn-like {{ background: var(--primary); }}
+        .btn-like:hover {{ background: var(--primary-hover); }}
+        .btn-info {{ background: var(--secondary); }}
+        .btn-info:hover {{ background: var(--secondary-hover); }}
+        
         #result {{
             margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
             display: none;
             font-size: 14px;
             line-height: 1.6;
-            word-wrap: break-word;
         }}
-        .success-res {{ background: #065f46; border: 1px solid #059669; }}
-        .info-res {{ 
-            background: #0f172a; 
-            border: 1px solid #2563eb; 
-            padding: 18px;
-            border-radius: 12px;
-        }}
-        .error-res {{ background: #991b1b; border: 1px solid #dc2626; }}
+        .success-res {{ background: #065f46; border: 1px solid #059669; padding: 15px; border-radius: 8px; }}
+        .error-res {{ background: #991b1b; border: 1px solid #dc2626; padding: 15px; border-radius: 8px; }}
         
-        .info-header {{
+        /* प्रोफाइल कार्ड डिजाइन */
+        .info-card {{
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }}
+        .section-title {{
             color: #67e8f9;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 15px 0 8px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed #334155;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }}
+        .section-title:first-of-type {{ margin-top: 0; }}
         .info-row {{
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #1e293b;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
         }}
-        .info-label {{
-            color: #94a3b8;
-            font-weight: 500;
-        }}
-        .info-value {{
-            color: #f8fafc;
-            font-weight: bold;
-        }}
+        .info-label {{ color: #94a3b8; font-size: 13px; }}
+        .info-value {{ color: #f8fafc; font-weight: 600; font-size: 13.5px; }}
+        
+        .val-highlight {{ color: #f59e0b; font-weight: bold; }}
+        .val-success {{ color: #4ade80; }}
+        .val-heart {{ color: #ec4899; }}
+        
         .info-sig {{
-            background: rgba(255,255,255,0.05);
-            padding: 8px;
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
             border-radius: 6px;
-            margin-top: 10px;
+            margin-top: 5px;
+            border-left: 3px solid var(--secondary);
             font-style: italic;
             color: #cbd5e1;
             font-size: 13px;
+            word-break: break-all;
         }}
-        
-        .loader {{
-            display: none;
-            text-align: center;
+
+        /* रॉ डेटा रिस्पॉन्स बॉक्स डिजाइन */
+        .raw-data-box {{
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
             margin-top: 15px;
+            max-height: 250px;
+            overflow-y: auto;
         }}
+        .raw-data-box pre {{
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #38bdf8;
+        }}
+
+        .loader {{ display: none; text-align: center; margin-top: 15px; }}
     </style>
 </head>
 <body>
@@ -318,7 +330,7 @@ HTML_TEMPLATE = """
         if (actionType === 'like') {{
             loaderText.innerText = "लाइक भेजे जा रहे हैं, पेज रिफ्रेश न करें...";
         }} else {{
-            loaderText.innerText = "प्लेयर का डेटा खोजा जा रहा है...";
+            loaderText.innerText = "प्लेयर का पूरा डेटा निकाला जा रहा है...";
         }}
 
         const formData = new FormData();
@@ -348,44 +360,44 @@ HTML_TEMPLATE = """
                         <b>टोटल लाइक्स:</b> ${{data.before}} ➔ ${{data.after}}
                     `;
                 }} else {{
-                    resultDiv.className = 'info-res';
+                    resultDiv.removeAttribute('class');
                     
+                    let res = data.info;
+                    
+                    // JSON को सुंदर स्ट्रिंग में बदलना (ताकि नीचे डिक्ट के रूप में पूरा दिखे)
+                    let rawJsonString = JSON.stringify(data.raw, null, 4);
+
                     let infoHTML = `
-                        <div class="info-header">
-                            <i class="fa-solid fa-user-shield"></i> प्लेयर प्रोफाइल कार्ड
+                        <div class="info-card">
+                            <div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>
+                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">${{res.nickname}}</span></div>
+                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">${{res.uid}}</span></div>
+                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">${{res.region}}</span></div>
+                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">${{res.level}}</span></div>
+                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">${{res.exp}}</span></div>
+                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ${{res.likes}}</span></div>
+                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">${{res.account_type}}</span></div>
+                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">${{res.create_at}}</span></div>
+                            
+                            <div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>
+                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.br_points}}</span></div>
+                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.cs_points}}</span></div>
+                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">${{res.max_rank}}</span></div>
+                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">${{res.credit_score}}</span></div>
+                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">${{res.last_login}}</span></div>
+
+                            <div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>
+                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">${{res.pet_id}}</span></div>
+                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">${{res.pet_level}}</span></div>
+                            
+                            <div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>
+                            <div class="info-sig">${{res.signature}}</div>
+
+                            <div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>
+                            <div class="raw-data-box">
+                                <pre>${{rawJsonString}}</pre>
+                            </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">निकनेम (Name):</span>
-                            <span class="info-value" style="color: #f59e0b;">${{data.info.nickname}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">गेम UID:</span>
-                            <span class="info-value">${{data.info.uid}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">क्षेत्र (Region):</span>
-                            <span class="info-value">${{data.info.region}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">लेवल (Level):</span>
-                            <span class="info-value" style="color: #4ade80;">${{data.info.level}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">कुल लाइक्स (Likes):</span>
-                            <span class="info-value" style="color: #ec4899;"><i class="fa-solid fa-heart"></i> ${{data.info.likes}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">क्रेडिट स्कोर:</span>
-                            <span class="info-value">${{data.info.credit_score}}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">आखिरी बार ऑनलाइन:</span>
-                            <span class="info-value">${{data.info.last_login}}</span>
-                        </div>
-                        <div class="info-row" style="border:none;">
-                            <span class="info-label">सिग्नेचर (Signature):</span>
-                        </div>
-                        <div class="info-sig">${{data.info.signature}}</div>
                     `;
                     resultDiv.innerHTML = infoHTML;
                 }}
@@ -431,7 +443,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- 1. प्लेयर इन्फो एक्शन ----
+    # ---- प्लेयर इन्फो एक्शन ----
     if action == "info":
         try:
             url = f"{INFO_API_URL}?region={region}&uid={uid}"
@@ -440,43 +452,59 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                     if resp.status == 200:
                         raw_data = await resp.json()
                         
-                        # केस-इन्सेन्सिटिव (बड़े-छोटे अक्षर) हैंडलिंग ताकि डेटा मिस न हो
-                        basic_info = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
-                        social_info = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
-                        credit_info = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
+                        basic = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
+                        social = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
+                        credit = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
+                        pet = raw_data.get("petInfo") or raw_data.get("PetInfo") or {}
                         
-                        # नाम और लेवल निकालने के सारे संभावित तरीके (ताकि N/A न आए)
-                        nickname = basic_info.get("nickname") or basic_info.get("Nickname") or raw_data.get("nickname") or "Unknown"
-                        level = basic_info.get("level") or basic_info.get("Level") or raw_data.get("level") or "N/A"
-                        likes = basic_info.get("liked") or basic_info.get("Liked") or basic_info.get("likes") or 0
+                        last_login_ts = basic.get("lastLoginAt") or basic.get("lastLogin") or 0
+                        create_at_ts = basic.get("createAt") or basic.get("createTime") or 0
                         
-                        last_login_ts = basic_info.get("lastLoginAt") or basic_info.get("lastLogin") or 0
                         try:
-                            last_login_date = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
-                        except:
-                            last_login_date = "N/A"
+                            last_login = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
+                        except: last_login = "N/A"
                             
+                        try:
+                            create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
+                        except: create_at = "N/A"
+
+                        gender_raw = social.get("gender", "N/A")
+                        gender = "Female ♀️" if "FEMALE" in gender_raw.upper() else "Male ♂️" if "MALE" in gender_raw.upper() else "N/A"
+                        prefer_mode = social.get("modePrefer", "N/A").replace("ModePrefer_", "")
+
                         clean_profile = {
-                            "nickname": nickname,
-                            "uid": basic_info.get("accountId") or uid,
-                            "region": basic_info.get("region", region.upper()),
-                            "level": level,
-                            "likes": likes,
-                            "credit_score": credit_info.get("creditScore") or credit_info.get("creditscore") or "N/A",
-                            "last_login": last_login_date,
-                            "signature": social_info.get("signature") or "No Signature Set"
+                            "nickname": basic.get("nickname") or basic.get("Nickname") or "Unknown",
+                            "uid": basic.get("accountId") or uid,
+                            "region": basic.get("region", region.upper()),
+                            "level": basic.get("level", "N/A"),
+                            "exp": basic.get("exp", "N/A"),
+                            "likes": basic.get("liked") or basic.get("Liked") or 0,
+                            "account_type": "Google/FB" if basic.get("accountType") == 1 else "Guest/Other",
+                            "create_at": create_at,
+                            "br_points": basic.get("rankingPoints", "N/A"),
+                            "cs_points": basic.get("csRank", "N/A"),
+                            "max_rank": basic.get("maxRank", "N/A"),
+                            "credit_score": credit.get("creditScore", "N/A"),
+                            "last_login": last_login,
+                            "pet_id": pet.get("id", "No Pet"),
+                            "pet_level": pet.get("level", "N/A"),
+                            "prefer_mode": prefer_mode,
+                            "gender": gender,
+                            "signature": social.get("signature") or "No Signature Set"
                         }
                         
+                        # यहाँ हम साफ डेटा (clean) और पूरा कच्चा डेटा (raw) दोनों एक साथ भेज रहे हैं
                         return JSONResponse({
-                            "status": "success",
-                            "info": clean_profile
+                            "status": "success", 
+                            "info": clean_profile,
+                            "raw": raw_data
                         })
                     else:
                         return JSONResponse({"status": "error", "message": f"इन्फो एपीआई एरर: HTTP {resp.status}"})
         except Exception as e:
             return JSONResponse({"status": "error", "message": f"इन्फो निकालने में विफल: {str(e)}"})
 
-    # ---- 2. लाइक भेजने का एक्शन ----
+    # ---- लाइक भेजने का एक्शन ----
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
