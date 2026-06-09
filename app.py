@@ -268,7 +268,7 @@ HTML_TEMPLATE = """
 <body>
 
 <div class="container">
-    <h1><i class="fa-solid fa-crosshairs"></i> FF TOOLBOX</h1>
+    <h1><i class="fa-solid fa-crosshairs"></i> S.KANHAIYA_INFO-PANEL</h1>
     <div class="subtitle">लाइक्स बढ़ाएं और प्लेयर की जानकारी निकालें</div>
 
     <div class="stats-box">
