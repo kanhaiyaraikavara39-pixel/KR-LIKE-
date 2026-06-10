@@ -22,7 +22,7 @@ DATA_FILES = {
 
 # 🔗 आपकी दी हुई सभी लिंक्स यहाँ पूरी तरह सेट कर दी गई हैं भाई!
 MENU_LINKS = [
-    {"title": "📢 Telegram group", "url": "https://t.me/+L4r9VbNDxJo4ZDJll"},
+    {"title": "📢 Telegram group", "url": "https://t.me/S.KANHAIYA_FF BOT GROUP},
     {"title": "💬 TELEGRAM BOT", "url": "https://t.me/Kanhaiya789_bot"},
     {"title": "📸 Instagram Profile", "url": "https://www.instagram.com/s.kanhaiya.7m"},
     {"title": "📺 YouTube Channel", "url": "https://youtube.com/@s.kanhaiya.7m?si=5dsvMXdeT8SzX58Q"},
@@ -398,7 +398,7 @@ HTML_TEMPLATE = """
         <i class="fa-solid fa-bars"></i> मेनू (Menu)
     </button>
 
-    <h1><i class="fa-solid fa-crosshairs"></i> FF TOOLBOX</h1>
+    <h1><i class="fa-solid fa-crosshairs"></i> S.KANHAIYA_INFO: PANEL</h1>
     <div class="subtitle">लाइक्स बढ़ाएं और प्लेयर की जानकारी निकालें</div>
 
     <div class="stats-box">
