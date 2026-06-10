@@ -28,7 +28,7 @@ MENU_LINKS = [
     {"title": "📺 YouTube Channel", "url": "https://youtube.com/@s.kanhaiya.7m?si=5dsvMXdeT8SzX58Q"},
     {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
     {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
-    {"title": "🛠️ OB53 PROXY SERVER", "url": "https://www.mediafire.com/file/nmvsd071j99gfcw/ASTUTE+BETA+OB53.apk/file?dkey=i8g0f8d9nk6&r=1921},
+    {"title": "🛠️ OB53 PROXY SERVER", "url": "https://astutebetaserverff.com/"}
   
 ]
 
