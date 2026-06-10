@@ -22,13 +22,13 @@ DATA_FILES = {
 
 # 🔗 यहाँ आप अपने सभी 10 से 20 बटनों के नाम और लिंक बदल सकते हैं भाई!
 MENU_LINKS = [
-    {"title": "📢 Telegram Channel", "url": "https://t.me/your_channel"},
-    {"title": "💬 Support Group", "url": "https://t.me/your_group"},
+    {"title": "📢 Telegram group", "url": "https://t.me/+L4r9VbNDxJo4ZDJll"},
+    {"title": "💬 TELEGRAM BOT", "url": "https://t.me/Kanhaiya789_bot"},
     {"title": "📸 Instagram Profile", "url": "https://www.instagram.com/s.kanhaiya.7m"},
-    {"title": "📺 YouTube Channel", "url": "https://youtube.com/"},
+    {"title": "📺 YouTube Channel", "url": "https://youtube.com/@s.kanhaiya.7m?si=5dsvMXdeT8SzX58Q"},
     {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
     {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
-    {"title": "🛠️ K.R Services", "url": "https://example.com/kr"},
+    {"title": "🛠️ OB53 PROXY SERVER", "url": "https://www.mediafire.com/file/nmvsd071j99gfcw/ASTUTE+BETA+OB53.apk/file?dkey=i8g0f8d9nk6&r=1921},
     {"title": "🎁 Daily Giveaway", "url": "https://example.com/giveaway"},
     {"title": "📝 Contact Developer", "url": "https://t.me/your_username"},
     {"title": "⭐ Rate Our Tool", "url": "https://example.com/rate"},
