@@ -20,7 +20,7 @@ DATA_FILES = {
     'config': '/tmp/bot_config.json'
 }
 
-# 🔗 यहाँ आप अपने सभी 10 से 20 बटनों के नाम और लिंक बदल सकते हैं भाई!
+# 🔗 आपकी दी हुई सभी लिंक्स यहाँ पूरी तरह सेट कर दी गई हैं भाई!
 MENU_LINKS = [
     {"title": "📢 Telegram group", "url": "https://t.me/+L4r9VbNDxJo4ZDJll"},
     {"title": "💬 TELEGRAM BOT", "url": "https://t.me/Kanhaiya789_bot"},
@@ -29,7 +29,6 @@ MENU_LINKS = [
     {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
     {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
     {"title": "🛠️ OB53 PROXY SERVER", "url": "https://astutebetaserverff.com/"}
-  
 ]
 
 bot_status = "on"
@@ -131,7 +130,6 @@ HTML_TEMPLATE = """
             position: relative;
         }}
         
-        /* 👑 टॉप मेनू बटन स्टाइल */
         .menu-trigger-btn {{
             position: absolute;
             top: 20px;
@@ -148,13 +146,11 @@ HTML_TEMPLATE = """
             gap: 6px;
             transition: 0.2s;
             width: auto;
-            flex: none;
         }}
         .menu-trigger-btn:hover {{
             background: var(--primary);
         }}
 
-        /* 📱 लिंक मेनू बॉक्स (पॉपअप/ड्रॉपडाउन) */
         .links-menu-overlay {{
             display: none;
             position: fixed;
@@ -316,7 +312,6 @@ HTML_TEMPLATE = """
         .success-res {{ background: #065f46; border: 1px solid #059669; padding: 15px; border-radius: 8px; }}
         .error-res {{ background: #991b1b; border: 1px solid #dc2626; padding: 15px; border-radius: 8px; }}
         
-        /* प्रोफाइल कार्ड डिजाइन */
         .info-card {{
             background: #0f172a;
             border: 1px solid #334155;
@@ -363,7 +358,6 @@ HTML_TEMPLATE = """
             word-break: break-all;
         }}
 
-        /* रॉ डेटा रिस्पॉन्स बॉक्स डिजाइन */
         .raw-data-box {{
             background: #090d16;
             border: 1px solid #1e293b;
@@ -448,7 +442,6 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
-    // मेनू को खोलने और बंद करने का फंक्शन
     function toggleMenu(show) {{
         document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
     }}
@@ -492,63 +485,61 @@ HTML_TEMPLATE = """
             if (data.status === 'success') {{
                 if (actionType === 'like') {{
                     resultDiv.className = 'success-res';
-                    resultDiv.innerHTML = `
-                        <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
-                        <b>प्लेयर नाम:</b> \${{data.player}}<br>
-                        <b>UID:</b> <code>\${{data.uid}}</code><br>
-                        <b>लेवल:</b> \${{data.level}}<br>
-                        <b>मिले लाइक्स:</b> +\${{data.given}}<br>
-                        <b>टोटल लाइक्स:</b> \${{data.before}} ➔ \\\${{data.after}}
-                    `;
+                    resultDiv.innerHTML = "<h3>✅ लाइक सफलतापूर्वक भेजे गए!</h3>" +
+                        "<b>प्लेयर नाम:</b> " + data.player + "<br>" +
+                        "<b>UID:</b> <code>" + data.uid + "</code><br>" +
+                        "<b>लेवल:</b> " + data.level + "<br>" +
+                        "<b>मिले लाइक्स:</b> +" + data.given + "<br>" +
+                        "<b>टोटल लाइक्स:</b> " + data.before + " ➔ " + data.after;
                 }} else {{
                     resultDiv.removeAttribute('class');
                     
                     let res = data.info;
                     let rawJsonString = JSON.stringify(data.raw, null, 4);
 
-                    let infoHTML = `
-                        <div class="info-card">
-                            <div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>
-                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">\${{res.nickname}}</span></div>
-                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">\${{res.uid}}</span></div>
-                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">\${{res.region}}</span></div>
-                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">\${{res.level}}</span></div>
-                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">\${{res.exp}}</span></div>
-                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> \${{res.likes}}</span></div>
-                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">\${{res.account_type}}</span></div>
-                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">\${{res.create_at}}</span></div>
-                            
-                            <div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>
-                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">\${{res.br_points}}</span></div>
-                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">\${{res.cs_points}}</span></div>
-                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">\${{res.max_rank}}</span></div>
-                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">\${{res.credit_score}}</span></div>
-                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">\${{res.last_login}}</span></div>
+                    // 🛠️ फिक्स: यहाँ स्ट्रिंग को कैरेक्टर कंकेटिनेशन से जोड़ दिया है ताकि फॉर्मेटिंग ग्लिच न आए
+                    let infoHTML = '<div class="info-card">' +
+                        '<div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>' +
+                        '<div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">' + res.nickname + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">' + res.uid + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">' + res.region + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">' + res.level + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">' + res.exp + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ' + res.likes + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">' + res.account_type + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">' + res.create_at + '</span></div>' +
+                        
+                        '<div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>' +
+                        '<div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">' + res.br_points + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">' + res.cs_points + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">' + res.max_rank + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">' + res.credit_score + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">' + res.last_login + '</span></div>' +
 
-                            <div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>
-                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">\${{res.pet_id}}</span></div>
-                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">\${{res.pet_level}}</span></div>
-                            
-                            <div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>
-                            <div class="info-sig">\${{res.signature}}</div>
+                        '<div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>' +
+                        '<div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">' + res.pet_id + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">' + res.pet_level + '</span></div>' +
+                        
+                        '<div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>' +
+                        '<div class="info-sig">' + res.signature + '</div>' +
 
-                            <div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>
-                            <div class="raw-data-box">
-                                <pre>\${{rawJsonString}}</pre>
-                            </div>
-                        </div>
-                    `;
+                        '<div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>' +
+                        '<div class="raw-data-box">' +
+                            '<pre>' + rawJsonString + '</pre>' +
+                        '</div>' +
+                    '</div>';
+                    
                     resultDiv.innerHTML = infoHTML;
                 }}
             }} else {{
                 resultDiv.className = 'error-res';
-                resultDiv.innerHTML = `❌ \${{data.message}}`;
+                resultDiv.innerHTML = "❌ " + data.message;
             }}
         }} catch (error) {{
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             resultDiv.className = 'error-res';
-            resultDiv.innerHTML = `❌ सर्वर से संपर्क नहीं हो पाया।`;
+            resultDiv.innerHTML = "❌ सर्वर से संपर्क नहीं हो पाया।";
         }}
     }}
 </script>
@@ -565,7 +556,6 @@ async def home(request: Request):
     used = user_limits.get(client_ip, {}).get('count', 0) if client_ip in user_limits and user_limits[client_ip]['date'] == t else 0
     remaining = daily_limit - used
     
-    # डायनामिक रूप से MENU_LINKS लिस्ट से HTML बटन तैयार करना
     buttons_html = ""
     for item in MENU_LINKS:
         buttons_html += f'<a href="{item["url"]}" target="_blank" class="menu-link-item">{item["title"]} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i></a>\n'
