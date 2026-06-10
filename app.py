@@ -20,6 +20,30 @@ DATA_FILES = {
     'config': '/tmp/bot_config.json'
 }
 
+# 20 डाउनलोड बटनों की लिस्ट जो आपने दी है
+DOWNLOAD_LINKS = [
+    {"title": "Button 1", "url": "https://example.com/1"},
+    {"title": "Button 2", "url": "https://example.com/2"},
+    {"title": "Button 3", "url": "https://example.com/3"},
+    {"title": "Button 4", "url": "https://example.com/4"},
+    {"title": "Button 5", "url": "https://example.com/5"},
+    {"title": "Button 6", "url": "https://example.com/6"},
+    {"title": "Button 7", "url": "https://example.com/7"},
+    {"title": "Button 8", "url": "https://example.com/8"},
+    {"title": "Button 9", "url": "https://example.com/9"},
+    {"title": "Button 10", "url": "https://example.com/10"},
+    {"title": "Button 11", "url": "https://example.com/11"},
+    {"title": "Button 12", "url": "https://example.com/12"},
+    {"title": "Button 13", "url": "https://example.com/13"},
+    {"title": "Button 14", "url": "https://example.com/14"},
+    {"title": "Button 15", "url": "https://example.com/15"},
+    {"title": "Button 16", "url": "https://example.com/16"},
+    {"title": "Button 17", "url": "https://example.com/17"},
+    {"title": "Button 18", "url": "https://example.com/18"},
+    {"title": "Button 19", "url": "https://example.com/19"},
+    {"title": "Button 20", "url": "https://example.com/20"}
+]
+
 bot_status = "on"
 daily_stats = {}
 user_limits = {}
@@ -263,9 +287,77 @@ HTML_TEMPLATE = """
         }}
 
         .loader {{ display: none; text-align: center; margin-top: 15px; }}
+
+        /* ============ यहाँ से आपका नया मेनू CSS है ============ */
+        .menu-btn{{
+            position:fixed;
+            top:15px;
+            right:15px;
+            width:50px;
+            height:50px;
+            border-radius:50%;
+            z-index:9999;
+            background:#f97316;
+            color:white;
+            font-size:22px;
+            border:none;
+            cursor:pointer;
+        }}
+
+        .side-menu{{
+            position:fixed;
+            top:0;
+            right:-320px;
+            width:300px;
+            height:100%;
+            background:#111827;
+            z-index:9998;
+            overflow-y:auto;
+            transition:0.3s;
+            padding:15px;
+            box-sizing:border-box;
+        }}
+
+        .side-menu.open{{
+            right:0;
+        }}
+
+        .menu-title{{
+            font-size:20px;
+            font-weight:bold;
+            margin-bottom:15px;
+            color:#f97316;
+        }}
+
+        .link-btn{{
+            display:block;
+            width:100%;
+            margin-bottom:10px;
+            padding:12px;
+            text-decoration:none;
+            background:#1f2937;
+            color:white;
+            border-radius:8px;
+            text-align:center;
+            font-weight:bold;
+            box-sizing: border-box;
+        }}
+
+        .link-btn:hover{{
+            background:#374151;
+        }}
     </style>
 </head>
 <body>
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<div id="sideMenu" class="side-menu">
+    <div class="menu-title">Downloads Menu</div>
+    <div id="menuLinks">
+        Loading...
+    </div>
+</div>
 
 <div class="container">
     <h1><i class="fa-solid fa-crosshairs"></i> S.KANHAIYA_INFO-PANEL</h1>
@@ -312,6 +404,38 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
+    // यहाँ से आपकी नई मेनू जावास्क्रिप्ट शुरू होती है
+    function toggleMenu(){{
+        document.getElementById("sideMenu").classList.toggle("open");
+    }}
+
+    async function loadMenuLinks(){{{
+        try{{
+            let res = await fetch('/api/links');
+            let data = await res.json();
+
+            let html = '';
+
+            data.forEach(item=>{{
+                html += `
+                    <a class="link-btn"
+                       href="\${item.url}"
+                       target="_blank">
+                       \${item.title}
+                    </a>
+                `;
+            }});
+
+            document.getElementById('menuLinks').innerHTML = html;
+
+        }}catch(e){{
+            document.getElementById('menuLinks').innerHTML = 'Links Load Failed';
+        }}
+    }}}
+
+    loadMenuLinks();
+
+    // पुराने पैनल के फंक्शन्स बिना किसी बदलाव के
     async function processAction(actionType) {{
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
@@ -353,49 +477,47 @@ HTML_TEMPLATE = """
                     resultDiv.className = 'success-res';
                     resultDiv.innerHTML = `
                         <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
-                        <b>प्लेयर नाम:</b> ${{data.player}}<br>
-                        <b>UID:</b> <code>${{data.uid}}</code><br>
-                        <b>लेवल:</b> ${{data.level}}<br>
-                        <b>मिले लाइक्स:</b> +${{data.given}}<br>
-                        <b>टोटल लाइक्स:</b> ${{data.before}} ➔ ${{data.after}}
+                        <b>प्लेयर नाम:</b> \${data.player}<br>
+                        <b>UID:</b> <code>\${data.uid}</code><br>
+                        <b>लेवल:</b> \${data.level}<br>
+                        <b>मिले लाइक्स:</b> +\${data.given}<br>
+                        <b>टोटल लाइक्स:</b> \${data.before} ➔ \${data.after}
                     `;
                 }} else {{
                     resultDiv.removeAttribute('class');
                     
                     let res = data.info;
-                    
-                    // JSON को सुंदर स्ट्रिंग में बदलना (ताकि नीचे डिक्ट के रूप में पूरा दिखे)
                     let rawJsonString = JSON.stringify(data.raw, null, 4);
 
                     let infoHTML = `
                         <div class="info-card">
                             <div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>
-                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">${{res.nickname}}</span></div>
-                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">${{res.uid}}</span></div>
-                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">${{res.region}}</span></div>
-                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">${{res.level}}</span></div>
-                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">${{res.exp}}</span></div>
-                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ${{res.likes}}</span></div>
-                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">${{res.account_type}}</span></div>
-                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">${{res.create_at}}</span></div>
+                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">\${res.nickname}</span></div>
+                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">\${res.uid}</span></div>
+                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">\${res.region}</span></div>
+                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">\${res.level}</span></div>
+                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">\${res.exp}</span></div>
+                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> \${res.likes}</span></div>
+                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">\${res.account_type}</span></div>
+                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">\${res.create_at}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>
-                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.br_points}}</span></div>
-                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.cs_points}}</span></div>
-                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">${{res.max_rank}}</span></div>
-                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">${{res.credit_score}}</span></div>
-                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">${{res.last_login}}</span></div>
+                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.br_points}</span></div>
+                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.cs_points}</span></div>
+                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">\${res.max_rank}</span></div>
+                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">\${res.credit_score}</span></div>
+                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">\${res.last_login}</span></div>
 
                             <div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>
-                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">${{res.pet_id}}</span></div>
-                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">${{res.pet_level}}</span></div>
+                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">\${res.pet_id}</span></div>
+                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">\${res.pet_level}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>
-                            <div class="info-sig">${{res.signature}}</div>
+                            <div class="info-sig">\${res.signature}</div>
 
                             <div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>
                             <div class="raw-data-box">
-                                <pre>${{rawJsonString}}</pre>
+                                <pre>\${rawJsonString}</pre>
                             </div>
                         </div>
                     `;
@@ -403,7 +525,7 @@ HTML_TEMPLATE = """
                 }}
             }} else {{
                 resultDiv.className = 'error-res';
-                resultDiv.innerHTML = `❌ ${{data.message}}`;
+                resultDiv.innerHTML = `❌ \${data.message}`;
             }}
         }} catch (error) {{
             loader.style.display = 'none';
@@ -418,6 +540,11 @@ HTML_TEMPLATE = """
 """
 
 # ============ ROUTES ============
+
+# आपकी नई लिंक्स एपीआई (इसे यहाँ जोड़ा गया है)
+@app.get("/api/links")
+async def get_links():
+    return DOWNLOAD_LINKS
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -483,8 +610,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "create_at": create_at,
                             "br_points": basic.get("rankingPoints", "N/A"),
                             "cs_points": basic.get("csRank", "N/A"),
-                            "max_rank": basic.get("maxRank", "N/A"),
-                            "credit_score": credit.get("creditScore", "N/A"),
+                            "max_rank": basic.get("maxRank", "N/A"),"credit_score": credit.get("creditScore", "N/A"),
                             "last_login": last_login,
                             "pet_id": pet.get("id", "No Pet"),
                             "pet_level": pet.get("level", "N/A"),
@@ -493,7 +619,6 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "signature": social.get("signature") or "No Signature Set"
                         }
                         
-                        # यहाँ हम साफ डेटा (clean) और पूरा कच्चा डेटा (raw) दोनों एक साथ भेज रहे हैं
                         return JSONResponse({
                             "status": "success", 
                             "info": clean_profile,
