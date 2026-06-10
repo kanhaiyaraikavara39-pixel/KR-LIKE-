@@ -14,7 +14,13 @@ INFO_API_URL = "https://s-kanhaiya-ff-info.vercel.app/player-info"
 ENCODED_KEY = "WkVYWFk="
 API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
-# 20 डाउनलोड बटनों की लिस्ट (इसे आप यहाँ कोड में ही बदल सकते हैं)
+DATA_FILES = {
+    'stats': '/tmp/daily_stats.json',
+    'users': '/tmp/user_limits.json',
+    'config': '/tmp/bot_config.json'
+}
+
+# 20 डाउनलोड बटनों की लिस्ट जो आपने दी है
 DOWNLOAD_LINKS = [
     {"title": "Button 1", "url": "https://example.com/1"},
     {"title": "Button 2", "url": "https://example.com/2"},
@@ -39,13 +45,38 @@ DOWNLOAD_LINKS = [
 ]
 
 bot_status = "on"
+daily_stats = {}
+user_limits = {}
 daily_limit = 2
+
+def load_data():
+    global daily_stats, user_limits, bot_status, daily_limit
+    try:
+        with open(DATA_FILES['stats'], 'r') as f: daily_stats = json.load(f)
+    except: daily_stats = {}
+    try:
+        with open(DATA_FILES['users'], 'r') as f: user_limits = json.load(f)
+    except: user_limits = {}
+    try:
+        with open(DATA_FILES['config'], 'r') as f:
+            cfg = json.load(f)
+            bot_status = cfg.get('status', 'on')
+            daily_limit = cfg.get('limit', 2)
+    except:
+        bot_status, daily_limit = 'on', 2
+
+def save_all():
+    try:
+        with open(DATA_FILES['stats'], 'w') as f: json.dump(daily_stats, f, indent=2)
+        with open(DATA_FILES['users'], 'w') as f: json.dump(user_limits, f, indent=2)
+        with open(DATA_FILES['config'], 'w') as f: json.dump({'status': bot_status, 'limit': daily_limit}, f, indent=2)
+    except:
+        pass
+
+load_data()
 
 def today_str(): 
     return str(date.today())
-
-# Vercel के लिए टेम्परेरी इन-मेमरी लिमिट ट्रैकर (बिना फाइल राइटिंग के)
-user_limits = {}
 
 def can_user_like(ip_address):
     t = today_str()
@@ -59,6 +90,14 @@ def update_user_like(ip_address):
     if ip_address not in user_limits or user_limits[ip_address]['date'] != t:
         user_limits[ip_address] = {'date': t, 'count': 0}
     user_limits[ip_address]['count'] += 1
+
+    if t not in daily_stats:  
+        daily_stats[t] = {'total': 0, 'ips': {}}  
+    daily_stats[t]['total'] += 1  
+    if ip_address not in daily_stats[t]['ips']:  
+        daily_stats[t]['ips'][ip_address] = 0  
+    daily_stats[t]['ips'][ip_address] += 1  
+    save_all()
 
 # ============ HTML + CSS + JS ============
 HTML_TEMPLATE = """
@@ -181,6 +220,7 @@ HTML_TEMPLATE = """
         .success-res {{ background: #065f46; border: 1px solid #059669; padding: 15px; border-radius: 8px; }}
         .error-res {{ background: #991b1b; border: 1px solid #dc2626; padding: 15px; border-radius: 8px; }}
         
+        /* प्रोफाइल कार्ड डिजाइन */
         .info-card {{
             background: #0f172a;
             border: 1px solid #334155;
@@ -227,6 +267,7 @@ HTML_TEMPLATE = """
             word-break: break-all;
         }}
 
+        /* रॉ डेटा रिस्पॉन्स बॉक्स डिजाइन */
         .raw-data-box {{
             background: #090d16;
             border: 1px solid #1e293b;
@@ -247,7 +288,7 @@ HTML_TEMPLATE = """
 
         .loader {{ display: none; text-align: center; margin-top: 15px; }}
 
-        /* ============ MENU CSS ============ */
+        /* ============ यहाँ से आपका नया मेनू CSS है ============ */
         .menu-btn{{
             position:fixed;
             top:15px;
@@ -363,6 +404,7 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
+    // यहाँ से आपकी नई मेनू जावास्क्रिप्ट शुरू होती है
     function toggleMenu(){{
         document.getElementById("sideMenu").classList.toggle("open");
     }}
@@ -393,6 +435,7 @@ HTML_TEMPLATE = """
 
     loadMenuLinks();
 
+    // पुराने पैनल के फंक्शन्स बिना किसी बदलाव के
     async function processAction(actionType) {{
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
@@ -435,7 +478,7 @@ HTML_TEMPLATE = """
                     resultDiv.innerHTML = `
                         <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
                         <b>प्लेयर नाम:</b> \${data.player}<br>
-                        <b>UID:</b> <code>\th{data.uid}</code><br>
+                        <b>UID:</b> <code>\${data.uid}</code><br>
                         <b>लेवल:</b> \${data.level}<br>
                         <b>मिले लाइक्स:</b> +\${data.given}<br>
                         <b>टोटल लाइक्स:</b> \${data.before} ➔ \${data.after}
@@ -498,6 +541,7 @@ HTML_TEMPLATE = """
 
 # ============ ROUTES ============
 
+# आपकी नई लिंक्स एपीआई (इसे यहाँ जोड़ा गया है)
 @app.get("/api/links")
 async def get_links():
     return DOWNLOAD_LINKS
@@ -526,7 +570,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- प्लेयर इन्फो ----
+    # ---- प्लेयर इन्फो एक्शन ----
     if action == "info":
         try:
             url = f"{INFO_API_URL}?region={region}&uid={uid}"
@@ -543,10 +587,12 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                         last_login_ts = basic.get("lastLoginAt") or basic.get("lastLogin") or 0
                         create_at_ts = basic.get("createAt") or basic.get("createTime") or 0
                         
-                        try: last_login = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
+                        try:
+                            last_login = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
                         except: last_login = "N/A"
                             
-                        try: create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
+                        try:
+                            create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
                         except: create_at = "N/A"
 
                         gender_raw = social.get("gender", "N/A")
@@ -573,13 +619,17 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "signature": social.get("signature") or "No Signature Set"
                         }
                         
-                        return JSONResponse({"status": "success", "info": clean_profile, "raw": raw_data})
+                        return JSONResponse({
+                            "status": "success", 
+                            "info": clean_profile,
+                            "raw": raw_data
+                        })
                     else:
                         return JSONResponse({"status": "error", "message": f"इन्फो एपीआई एरर: HTTP {resp.status}"})
         except Exception as e:
             return JSONResponse({"status": "error", "message": f"इन्फो निकालने में विफल: {str(e)}"})
 
-    # ---- लाइक भेजें ----
+    # ---- लाइक भेजने का एक्शन ----
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
