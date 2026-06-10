@@ -20,28 +20,24 @@ DATA_FILES = {
     'config': '/tmp/bot_config.json'
 }
 
-# 20 डाउनलोड बटनों की लिस्ट जो आपने दी है
-DOWNLOAD_LINKS = [
-    {"title": "Button 1", "url": "https://example.com/1"},
-    {"title": "Button 2", "url": "https://example.com/2"},
-    {"title": "Button 3", "url": "https://example.com/3"},
-    {"title": "Button 4", "url": "https://example.com/4"},
-    {"title": "Button 5", "url": "https://example.com/5"},
-    {"title": "Button 6", "url": "https://example.com/6"},
-    {"title": "Button 7", "url": "https://example.com/7"},
-    {"title": "Button 8", "url": "https://example.com/8"},
-    {"title": "Button 9", "url": "https://example.com/9"},
-    {"title": "Button 10", "url": "https://example.com/10"},
-    {"title": "Button 11", "url": "https://example.com/11"},
-    {"title": "Button 12", "url": "https://example.com/12"},
-    {"title": "Button 13", "url": "https://example.com/13"},
-    {"title": "Button 14", "url": "https://example.com/14"},
-    {"title": "Button 15", "url": "https://example.com/15"},
-    {"title": "Button 16", "url": "https://example.com/16"},
-    {"title": "Button 17", "url": "https://example.com/17"},
-    {"title": "Button 18", "url": "https://example.com/18"},
-    {"title": "Button 19", "url": "https://example.com/19"},
-    {"title": "Button 20", "url": "https://example.com/20"}
+# 🔗 यहाँ आप अपने सभी 10 से 20 बटनों के नाम और लिंक बदल सकते हैं भाई!
+MENU_LINKS = [
+    {"title": "📢 Telegram Channel", "url": "https://t.me/your_channel"},
+    {"title": "💬 Support Group", "url": "https://t.me/your_group"},
+    {"title": "📸 Instagram Profile", "url": "https://www.instagram.com/s.kanhaiya.7m"},
+    {"title": "📺 YouTube Channel", "url": "https://youtube.com/"},
+    {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
+    {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
+    {"title": "🛠️ K.R Services", "url": "https://example.com/kr"},
+    {"title": "🎁 Daily Giveaway", "url": "https://example.com/giveaway"},
+    {"title": "📝 Contact Developer", "url": "https://t.me/your_username"},
+    {"title": "⭐ Rate Our Tool", "url": "https://example.com/rate"},
+    # आप नीचे इसी तरह और भी बटन्स जोड़ सकते हैं (10 से 20 तक):
+    {"title": "🌐 Back Up Link 1", "url": "https://example.com/"},
+    {"title": "🌐 Back Up Link 2", "url": "https://example.com/"},
+    {"title": "🌐 Back Up Link 3", "url": "https://example.com/"},
+    {"title": "🌐 Back Up Link 4", "url": "https://example.com/"},
+    {"title": "🌐 Back Up Link 5", "url": "https://example.com/"},
 ]
 
 bot_status = "on"
@@ -117,6 +113,7 @@ HTML_TEMPLATE = """
             --secondary: #06b6d4;
             --secondary-hover: #0891b2;
             --text-main: #f8fafc;
+            --menu-bg: #111827;
         }}
         body {{
             font-family: 'Segoe UI', Roboto, sans-serif;
@@ -128,6 +125,7 @@ HTML_TEMPLATE = """
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            position: relative;
         }}
         .container {{
             background: var(--card-bg);
@@ -138,7 +136,112 @@ HTML_TEMPLATE = """
             max-width: 500px;
             border: 1px solid #334155;
             box-sizing: border-box;
+            position: relative;
         }}
+        
+        /* 👑 टॉप मेनू बटन स्टाइल */
+        .menu-trigger-btn {{
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+            width: auto;
+            flex: none;
+        }}
+        .menu-trigger-btn:hover {{
+            background: var(--primary);
+        }}
+
+        /* 📱 लिंक मेनू बॉक्स (पॉपअप/ड्रॉपडाउन) */
+        .links-menu-overlay {{
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+        }}
+        .links-menu {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--menu-bg);
+            border: 1px solid #475569;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 75vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            z-index: 1000;
+            box-sizing: border-box;
+        }}
+        .menu-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #334155;
+        }}
+        .menu-header h2 {{
+            margin: 0;
+            font-size: 18px;
+            color: var(--secondary);
+            text-transform: uppercase;
+        }}
+        .close-menu-btn {{
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: auto;
+        }}
+        .close-menu-btn:hover {{ color: #ef4444; }}
+        
+        .menu-grid {{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }}
+        .menu-link-item {{
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #374151;
+            transition: 0.2s;
+        }}
+        .menu-link-item:hover {{
+            background: var(--secondary);
+            color: white;
+            transform: translateX(4px);
+            border-color: #22d3ee;
+        }}
+
         h1 {{
             text-align: center;
             color: var(--primary);
@@ -146,6 +249,7 @@ HTML_TEMPLATE = """
             margin-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-top: 15px;
         }}
         .subtitle {{
             text-align: center;
@@ -287,80 +391,28 @@ HTML_TEMPLATE = """
         }}
 
         .loader {{ display: none; text-align: center; margin-top: 15px; }}
-
-        /* ============ यहाँ से आपका नया मेनू CSS है ============ */
-        .menu-btn{{
-            position:fixed;
-            top:15px;
-            right:15px;
-            width:50px;
-            height:50px;
-            border-radius:50%;
-            z-index:9999;
-            background:#f97316;
-            color:white;
-            font-size:22px;
-            border:none;
-            cursor:pointer;
-        }}
-
-        .side-menu{{
-            position:fixed;
-            top:0;
-            right:-320px;
-            width:300px;
-            height:100%;
-            background:#111827;
-            z-index:9998;
-            overflow-y:auto;
-            transition:0.3s;
-            padding:15px;
-            box-sizing:border-box;
-        }}
-
-        .side-menu.open{{
-            right:0;
-        }}
-
-        .menu-title{{
-            font-size:20px;
-            font-weight:bold;
-            margin-bottom:15px;
-            color:#f97316;
-        }}
-
-        .link-btn{{
-            display:block;
-            width:100%;
-            margin-bottom:10px;
-            padding:12px;
-            text-decoration:none;
-            background:#1f2937;
-            color:white;
-            border-radius:8px;
-            text-align:center;
-            font-weight:bold;
-            box-sizing: border-box;
-        }}
-
-        .link-btn:hover{{
-            background:#374151;
-        }}
     </style>
 </head>
 <body>
 
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<div id="sideMenu" class="side-menu">
-    <div class="menu-title">Downloads Menu</div>
-    <div id="menuLinks">
-        Loading...
+<div class="links-menu-overlay" id="menuOverlay" onclick="toggleMenu(false)">
+    <div class="links-menu" onclick="event.stopPropagation()">
+        <div class="menu-header">
+            <h2><i class="fa-solid fa-bars-staggered"></i> Navigation Menu</h2>
+            <button class="close-menu-btn" onclick="toggleMenu(false)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="menu-grid">
+            {menu_buttons_html}
+        </div>
     </div>
 </div>
 
 <div class="container">
-    <h1><i class="fa-solid fa-crosshairs"></i> S.KANHAIYA_INFO-PANEL</h1>
+    <button type="button" class="menu-trigger-btn" onclick="toggleMenu(true)">
+        <i class="fa-solid fa-bars"></i> मेनू (Menu)
+    </button>
+
+    <h1><i class="fa-solid fa-crosshairs"></i> FF TOOLBOX</h1>
     <div class="subtitle">लाइक्स बढ़ाएं और प्लेयर की जानकारी निकालें</div>
 
     <div class="stats-box">
@@ -404,38 +456,11 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
-    // यहाँ से आपकी नई मेनू जावास्क्रिप्ट शुरू होती है
-    function toggleMenu(){{
-        document.getElementById("sideMenu").classList.toggle("open");
+    // मेनू को खोलने और बंद करने का फंक्शन
+    function toggleMenu(show) {{
+        document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
     }}
 
-    async function loadMenuLinks(){{{
-        try{{
-            let res = await fetch('/api/links');
-            let data = await res.json();
-
-            let html = '';
-
-            data.forEach(item=>{{
-                html += `
-                    <a class="link-btn"
-                       href="\${item.url}"
-                       target="_blank">
-                       \${item.title}
-                    </a>
-                `;
-            }});
-
-            document.getElementById('menuLinks').innerHTML = html;
-
-        }}catch(e){{
-            document.getElementById('menuLinks').innerHTML = 'Links Load Failed';
-        }}
-    }}}
-
-    loadMenuLinks();
-
-    // पुराने पैनल के फंक्शन्स बिना किसी बदलाव के
     async function processAction(actionType) {{
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
@@ -477,11 +502,11 @@ HTML_TEMPLATE = """
                     resultDiv.className = 'success-res';
                     resultDiv.innerHTML = `
                         <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
-                        <b>प्लेयर नाम:</b> \${data.player}<br>
-                        <b>UID:</b> <code>\${data.uid}</code><br>
-                        <b>लेवल:</b> \${data.level}<br>
-                        <b>मिले लाइक्स:</b> +\${data.given}<br>
-                        <b>टोटल लाइक्स:</b> \${data.before} ➔ \${data.after}
+                        <b>प्लेयर नाम:</b> \${{data.player}}<br>
+                        <b>UID:</b> <code>\${{data.uid}}</code><br>
+                        <b>लेवल:</b> \${{data.level}}<br>
+                        <b>मिले लाइक्स:</b> +\${{data.given}}<br>
+                        <b>टोटल लाइक्स:</b> \${{data.before}} ➔ \\\${{data.after}}
                     `;
                 }} else {{
                     resultDiv.removeAttribute('class');
@@ -492,32 +517,32 @@ HTML_TEMPLATE = """
                     let infoHTML = `
                         <div class="info-card">
                             <div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>
-                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">\${res.nickname}</span></div>
-                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">\${res.uid}</span></div>
-                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">\${res.region}</span></div>
-                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">\${res.level}</span></div>
-                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">\${res.exp}</span></div>
-                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> \${res.likes}</span></div>
-                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">\${res.account_type}</span></div>
-                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">\${res.create_at}</span></div>
+                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">\${{res.nickname}}</span></div>
+                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">\${{res.uid}}</span></div>
+                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">\${{res.region}}</span></div>
+                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">\${{res.level}}</span></div>
+                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">\${{res.exp}}</span></div>
+                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> \${{res.likes}}</span></div>
+                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">\${{res.account_type}}</span></div>
+                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">\${{res.create_at}}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>
-                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.br_points}</span></div>
-                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.cs_points}</span></div>
-                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">\${res.max_rank}</span></div>
-                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">\${res.credit_score}</span></div>
-                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">\${res.last_login}</span></div>
+                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">\${{res.br_points}}</span></div>
+                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">\${{res.cs_points}}</span></div>
+                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">\${{res.max_rank}}</span></div>
+                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">\${{res.credit_score}}</span></div>
+                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">\${{res.last_login}}</span></div>
 
                             <div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>
-                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">\${res.pet_id}</span></div>
-                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">\${res.pet_level}</span></div>
+                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">\${{res.pet_id}}</span></div>
+                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">\${{res.pet_level}}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>
-                            <div class="info-sig">\${res.signature}</div>
+                            <div class="info-sig">\${{res.signature}}</div>
 
                             <div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>
                             <div class="raw-data-box">
-                                <pre>\${rawJsonString}</pre>
+                                <pre>\${{rawJsonString}}</pre>
                             </div>
                         </div>
                     `;
@@ -525,7 +550,7 @@ HTML_TEMPLATE = """
                 }}
             }} else {{
                 resultDiv.className = 'error-res';
-                resultDiv.innerHTML = `❌ \${data.message}`;
+                resultDiv.innerHTML = `❌ \${{data.message}}`;
             }}
         }} catch (error) {{
             loader.style.display = 'none';
@@ -541,11 +566,6 @@ HTML_TEMPLATE = """
 
 # ============ ROUTES ============
 
-# आपकी नई लिंक्स एपीआई (इसे यहाँ जोड़ा गया है)
-@app.get("/api/links")
-async def get_links():
-    return DOWNLOAD_LINKS
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     client_ip = request.client.host or "127.0.0.1"
@@ -553,10 +573,16 @@ async def home(request: Request):
     used = user_limits.get(client_ip, {}).get('count', 0) if client_ip in user_limits and user_limits[client_ip]['date'] == t else 0
     remaining = daily_limit - used
     
+    # डायनामिक रूप से MENU_LINKS लिस्ट से HTML बटन तैयार करना
+    buttons_html = ""
+    for item in MENU_LINKS:
+        buttons_html += f'<a href="{item["url"]}" target="_blank" class="menu-link-item">{item["title"]} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i></a>\n'
+    
     return HTML_TEMPLATE.format(
         bot_status=bot_status.upper(),
         remaining=remaining,
-        daily_limit=daily_limit
+        daily_limit=daily_limit,
+        menu_buttons_html=buttons_html
     )
 
 @app.post("/api/process")
@@ -610,7 +636,8 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "create_at": create_at,
                             "br_points": basic.get("rankingPoints", "N/A"),
                             "cs_points": basic.get("csRank", "N/A"),
-                            "max_rank": basic.get("maxRank", "N/A"),"credit_score": credit.get("creditScore", "N/A"),
+                            "max_rank": basic.get("maxRank", "N/A"),
+                            "credit_score": credit.get("creditScore", "N/A"),
                             "last_login": last_login,
                             "pet_id": pet.get("id", "No Pet"),
                             "pet_level": pet.get("level", "N/A"),
