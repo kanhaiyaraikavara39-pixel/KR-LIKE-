@@ -17,8 +17,7 @@ API_KEY = base64.b64decode(ENCODED_KEY).decode()
 DATA_FILES = {
     'stats': '/tmp/daily_stats.json',
     'users': '/tmp/user_limits.json',
-    'config': '/tmp/bot_config.json',
-    'menu': '/tmp/menu_links.json'  # डाउनलोड लिंक्स के लिए नई फ़ाइल
+    'config': '/tmp/bot_config.json'
 }
 
 bot_status = "on"
@@ -41,33 +40,6 @@ def load_data():
             daily_limit = cfg.get('limit', 2)
     except:
         bot_status, daily_limit = 'on', 2
-        
-    # डिफ़ॉल्ट लिंक्स फ़ाइल बनाना अगर वह मौजूद न हो
-    if not os.path.exists(DATA_FILES['menu']):
-        default_links = [
-            {"title": "File Download 1", "url": "https://example.com/file1"},
-            {"title": "File Download 2", "url": "https://example.com/file2"},
-            {"title": "File Download 3", "url": "https://example.com/file3"},
-            {"title": "File Download 4", "url": "https://example.com/file4"},
-            {"title": "File Download 5", "url": "https://example.com/file5"},
-            {"title": "File Download 6", "url": "https://example.com/file6"},
-            {"title": "File Download 7", "url": "https://example.com/file7"},
-            {"title": "File Download 8", "url": "https://example.com/file8"},
-            {"title": "File Download 9", "url": "https://example.com/file9"},
-            {"title": "File Download 10", "url": "https://example.com/file10"}
-        ]
-        try:
-            with open(DATA_FILES['menu'], 'w') as f:
-                json.dump(default_links, f, indent=2)
-        except:
-            pass
-
-def load_menu_links():
-    try:
-        with open(DATA_FILES['menu'], 'r') as f:
-            return json.load(f)
-    except:
-        return []
 
 def save_all():
     try:
@@ -132,7 +104,6 @@ HTML_TEMPLATE = """
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            position: relative;
         }}
         .container {{
             background: var(--card-bg);
@@ -292,128 +263,9 @@ HTML_TEMPLATE = """
         }}
 
         .loader {{ display: none; text-align: center; margin-top: 15px; }}
-
-        /* ============ FLOATING MENU STYLES ============ */
-        .floating-menu-btn {{
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, var(--primary), #ec4899);
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
-            z-index: 1000;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 2px solid rgba(255,255,255,0.2);
-        }}
-        .floating-menu-btn:hover {{
-            transform: scale(1.1) rotate(15deg);
-        }}
-        .side-menu-panel {{
-            position: fixed;
-            top: 0;
-            right: -320px;
-            width: 300px;
-            height: 100vh;
-            background: #0b1329;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
-            z-index: 999;
-            transition: right 0.4s cubic-bezier(0.075, 0.82, 0.165, 1);
-            padding: 20px;
-            box-sizing: border-box;
-            border-left: 2px solid #1e293b;
-            overflow-y: auto;
-        }}
-        .side-menu-panel.open {{
-            right: 0;
-        }}
-        .menu-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #1e293b;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }}
-        .menu-header h2 {{
-            margin: 0;
-            font-size: 18px;
-            color: #67e8f9;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }}
-        .close-menu-btn {{
-            background: none;
-            border: none;
-            color: #94a3b8;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 5px;
-            flex: none;
-            width: auto;
-        }}
-        .close-menu-btn:hover {{ color: white; }}
-        .download-links-container {{
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }}
-        .menu-download-btn {{
-            width: 100%;
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: #cbd5e1;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: left;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 10px;
-            text-decoration: none;
-            box-sizing: border-box;
-        }}
-        .menu-download-btn:hover {{
-            background: #27354f;
-            border-color: var(--secondary);
-            color: white;
-            transform: translateX(-4px);
-        }}
-        .menu-download-btn i {{
-            color: var(--secondary);
-            font-size: 16px;
-        }}
     </style>
 </head>
 <body>
-
-<div class="floating-menu-btn" onclick="toggleMenu()" title="डाउनलोड मेनू">
-    <i class="fa-solid fa-download"></i>
-</div>
-
-<div class="side-menu-panel" id="sideMenu">
-    <div class="menu-header">
-        <h2><i class="fa-solid fa-cloud-arrow-down"></i> डाउनलोड लिंक्स</h2>
-        <button class="close-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="download-links-container">
-        {menu_buttons_html}
-    </div>
-</div>
 
 <div class="container">
     <h1><i class="fa-solid fa-crosshairs"></i> S.KANHAIYA_INFO-PANEL</h1>
@@ -460,12 +312,6 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
-    // मेनू ओपन-क्लोज करने का फंक्शन
-    function toggleMenu() {{
-        const menu = document.getElementById('sideMenu');
-        menu.classList.toggle('open');
-    }}
-
     async function processAction(actionType) {{
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
@@ -507,48 +353,49 @@ HTML_TEMPLATE = """
                     resultDiv.className = 'success-res';
                     resultDiv.innerHTML = `
                         <h3 style="margin:0 0 10px 0; color: #4ade80;">✅ लाइक सफलतापूर्वक भेजे गए!</h3>
-                        <b>प्लेयर नाम:</b> \${data.player}<br>
-                        <b>UID:</b> <code>\${data.uid}</code><br>
-                        <b>लेवल:</b> \${data.level}<br>
-                        <b>मिले लाइक्स:</b> +\${data.given}<br>
-                        <b>टोटल लाइक्स:</b> \${data.before} ➔ \${data.after}
+                        <b>प्लेयर नाम:</b> ${{data.player}}<br>
+                        <b>UID:</b> <code>${{data.uid}}</code><br>
+                        <b>लेवल:</b> ${{data.level}}<br>
+                        <b>मिले लाइक्स:</b> +${{data.given}}<br>
+                        <b>टोटल लाइक्स:</b> ${{data.before}} ➔ ${{data.after}}
                     `;
                 }} else {{
                     resultDiv.removeAttribute('class');
                     
                     let res = data.info;
                     
+                    // JSON को सुंदर स्ट्रिंग में बदलना (ताकि नीचे डिक्ट के रूप में पूरा दिखे)
                     let rawJsonString = JSON.stringify(data.raw, null, 4);
 
                     let infoHTML = `
                         <div class="info-card">
                             <div class="section-title"><i class="fa-solid fa-user"></i> बेसिक इनफ़ॉर्मेशन</div>
-                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">\${res.nickname}</span></div>
-                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">\${res.uid}</span></div>
-                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">\${res.region}</span></div>
-                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">\${res.level}</span></div>
-                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">\${res.exp}</span></div>
-                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> \${res.likes}</span></div>
-                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">\${res.account_type}</span></div>
-                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">\${res.create_at}</span></div>
+                            <div class="info-row"><span class="info-label">निकनेम (Name):</span><span class="info-value val-highlight">${{res.nickname}}</span></div>
+                            <div class="info-row"><span class="info-label">गेम UID:</span><span class="info-value">${{res.uid}}</span></div>
+                            <div class="info-row"><span class="info-label">क्षेत्र (Region):</span><span class="info-value">${{res.region}}</span></div>
+                            <div class="info-row"><span class="info-label">लेवल (Level):</span><span class="info-value val-success">${{res.level}}</span></div>
+                            <div class="info-row"><span class="info-label">टोटल एक्सपी (EXP):</span><span class="info-value">${{res.exp}}</span></div>
+                            <div class="info-row"><span class="info-label">कुल लाइक्स:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ${{res.likes}}</span></div>
+                            <div class="info-row"><span class="info-label">अकाउंट टाइप:</span><span class="info-value">${{res.account_type}}</span></div>
+                            <div class="info-row"><span class="info-label">खाता बना (Created At):</span><span class="info-value">${{res.create_at}}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-trophy"></i> रैंक और स्कोर डेटा</div>
-                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.br_points}</span></div>
-                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">\${res.cs_points}</span></div>
-                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">\${res.max_rank}</span></div>
-                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">\${res.credit_score}</span></div>
-                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">\${res.last_login}</span></div>
+                            <div class="info-row"><span class="info-label">BR रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.br_points}}</span></div>
+                            <div class="info-row"><span class="info-label">CS रैंक पॉइंट:</span><span class="info-value val-highlight">${{res.cs_points}}</span></div>
+                            <div class="info-row"><span class="info-label">हाईएस्ट रैंक एवर:</span><span class="info-value">${{res.max_rank}}</span></div>
+                            <div class="info-row"><span class="info-label">क्रेडिट स्कोर:</span><span class="info-value val-success">${{res.credit_score}}</span></div>
+                            <div class="info-row"><span class="info-label">आखिरी बार ऑनलाइन:</span><span class="info-value">${{res.last_login}}</span></div>
 
                             <div class="section-title"><i class="fa-solid fa-paw"></i> पेट (Pet) और अन्य</div>
-                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">\${res.pet_id}</span></div>
-                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">\${res.pet_level}</span></div>
+                            <div class="info-row"><span class="info-label">एक्टिव पेट ID:</span><span class="info-value">${{res.pet_id}}</span></div>
+                            <div class="info-row"><span class="info-label">पेट लेवल:</span><span class="info-value">${{res.pet_level}}</span></div>
                             
                             <div class="section-title"><i class="fa-solid fa-signature"></i> सिग्नेचर (Signature)</div>
-                            <div class="info-sig">\${res.signature}</div>
+                            <div class="info-sig">${{res.signature}}</div>
 
                             <div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW API DATA (All Information)</div>
                             <div class="raw-data-box">
-                                <pre>\${rawJsonString}</pre>
+                                <pre>${{rawJsonString}}</pre>
                             </div>
                         </div>
                     `;
@@ -556,7 +403,7 @@ HTML_TEMPLATE = """
                 }}
             }} else {{
                 resultDiv.className = 'error-res';
-                resultDiv.innerHTML = `❌ \${data.message}`;
+                resultDiv.innerHTML = `❌ ${{data.message}}`;
             }}
         }} catch (error) {{
             loader.style.display = 'none';
@@ -579,19 +426,10 @@ async def home(request: Request):
     used = user_limits.get(client_ip, {}).get('count', 0) if client_ip in user_limits and user_limits[client_ip]['date'] == t else 0
     remaining = daily_limit - used
     
-    # JSON फ़ाइल से डायनामिक लिंक्स लोड करना
-    links = load_menu_links()
-    buttons_html = ""
-    for item in links:
-        title = item.get("title", "Download Link")
-        url = item.get("url", "#")
-        buttons_html += f'<a href="{url}" target="_blank" class="menu-download-btn"><i class="fa-solid fa-file-arrow-down"></i> {title}</a>\n'
-    
     return HTML_TEMPLATE.format(
         bot_status=bot_status.upper(),
         remaining=remaining,
-        daily_limit=daily_limit,
-        menu_buttons_html=buttons_html
+        daily_limit=daily_limit
     )
 
 @app.post("/api/process")
@@ -645,7 +483,8 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "create_at": create_at,
                             "br_points": basic.get("rankingPoints", "N/A"),
                             "cs_points": basic.get("csRank", "N/A"),
-                            "max_rank": basic.get("maxRank", "N/A"),"credit_score": credit.get("creditScore", "N/A"),
+                            "max_rank": basic.get("maxRank", "N/A"),
+                            "credit_score": credit.get("creditScore", "N/A"),
                             "last_login": last_login,
                             "pet_id": pet.get("id", "No Pet"),
                             "pet_level": pet.get("level", "N/A"),
@@ -654,6 +493,7 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             "signature": social.get("signature") or "No Signature Set"
                         }
                         
+                        # यहाँ हम साफ डेटा (clean) और पूरा कच्चा डेटा (raw) दोनों एक साथ भेज रहे हैं
                         return JSONResponse({
                             "status": "success", 
                             "info": clean_profile,
