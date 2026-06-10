@@ -29,15 +29,7 @@ MENU_LINKS = [
     {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
     {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
     {"title": "🛠️ OB53 PROXY SERVER", "url": "https://www.mediafire.com/file/nmvsd071j99gfcw/ASTUTE+BETA+OB53.apk/file?dkey=i8g0f8d9nk6&r=1921},
-    {"title": "🎁 Daily Giveaway", "url": "https://example.com/giveaway"},
-    {"title": "📝 Contact Developer", "url": "https://t.me/your_username"},
-    {"title": "⭐ Rate Our Tool", "url": "https://example.com/rate"},
-    # आप नीचे इसी तरह और भी बटन्स जोड़ सकते हैं (10 से 20 तक):
-    {"title": "🌐 Back Up Link 1", "url": "https://example.com/"},
-    {"title": "🌐 Back Up Link 2", "url": "https://example.com/"},
-    {"title": "🌐 Back Up Link 3", "url": "https://example.com/"},
-    {"title": "🌐 Back Up Link 4", "url": "https://example.com/"},
-    {"title": "🌐 Back Up Link 5", "url": "https://example.com/"},
+  
 ]
 
 bot_status = "on"
