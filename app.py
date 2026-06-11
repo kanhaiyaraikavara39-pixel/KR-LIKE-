@@ -22,13 +22,7 @@ DATA_FILES = {
 
 # 🔗 आपकी दी हुई सभी लिंक्स यहाँ पूरी तरह सेट कर दी गई हैं भाई!
 MENU_LINKS = [
-    {"title": "📢 Telegram group", "url": "https://t.me/https://t.me/+cUZy2uaWrfg0MmI1},
-    {"title": "💬 TELEGRAM BOT", "url": "https://t.me/Kanhaiya789_bot"},
-    {"title": "📸 Instagram Profile", "url": "https://www.instagram.com/s.kanhaiya.7m"},
-    {"title": "📺 YouTube Channel", "url": "https://youtube.com/@s.kanhaiya.7m?si=5dsvMXdeT8SzX58Q"},
-    {"title": "💎 Buy Diamonds", "url": "https://example.com/shop"},
-    {"title": "🔥 Free Fire Official", "url": "https://ff.garena.com/"},
-    {"title": "🛠️ OB53 PROXY SERVER", "url": "https://astutebetaserverff.com/"}
+    
 ]
 
 bot_status = "on"
