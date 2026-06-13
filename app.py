@@ -442,9 +442,9 @@ HTML_TEMPLATE = """
 ██╔═██╗ ██╔══██╗
 ██║  ██╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝
-[ SYSTEM v1.0 ]</div>
+[ SYSTEM v2.0 ]</div>
 
-    <h1>FF MULTI-EXTRACTOR</h1>
+    <h1>S.KANHAIYA_LIKE+INFO-PANEL</h1>
     <div class="subtitle">Secure Request Terminal</div>
 
     <div class="stats-box">
