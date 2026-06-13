@@ -86,7 +86,7 @@ def update_user_like(ip_address):
     daily_stats[t]['ips'][ip_address] += 1  
     save_all()
 
-# ============ HTML + CSS + JS (HACKER STYLE) ============
+# ============ HTML + CSS + JS (ANIMATED HACKER STYLE) ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -98,7 +98,7 @@ HTML_TEMPLATE = """
     <style>
         :root {{
             --bg-color: #05080e;
-            --card-bg: #0a0f1d;
+            --card-bg: rgba(10, 15, 29, 0.85); /* 🛠️ थोड़ा ट्रांसपेरेंट किया ताकि एनीमेशन दिखे */
             --primary: #00ff66;
             --primary-hover: #00cc52;
             --secondary: #00e5ff;
@@ -119,9 +119,18 @@ HTML_TEMPLATE = """
             align-items: center;
             min-height: 100vh;
             position: relative;
-            background-image: linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
+            overflow-x: hidden;
+        }}
+        
+        /* 🎥 MATRIX ANIMATION CANVAS */
+        #matrixCanvas {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* बैकग्राउंड में रहेगा */
+            opacity: 0.15; /* आँखों में न चुभे इसलिए परफेक्ट ओपेसिटी */
         }}
         
         .container {{
@@ -134,9 +143,9 @@ HTML_TEMPLATE = """
             border: 2px solid var(--primary);
             box-sizing: border-box;
             position: relative;
+            backdrop-filter: blur(4px); /* ब्लर इफेक्ट से टेक्स्ट साफ़ दिखेगा */
         }}
         
-        /* 💎 VIP ASCII HEADER */
         .ascii-header {{
             text-align: center;
             color: var(--primary);
@@ -339,7 +348,6 @@ HTML_TEMPLATE = """
         .success-res {{ background: #041a10; border: 1px solid var(--primary); padding: 15px; border-radius: 2px; color: var(--primary); }}
         .error-res {{ background: #1a0505; border: 1px solid var(--alert-red); padding: 15px; border-radius: 2px; color: var(--alert-red); }}
         
-        /* प्रोफाइल कार्ड डिजाइन */
         .info-card {{
             background: #02050a;
             border: 1px solid var(--terminal-border);
@@ -408,6 +416,8 @@ HTML_TEMPLATE = """
 </head>
 <body>
 
+<canvas id="matrixCanvas"></canvas>
+
 <div class="links-menu-overlay" id="menuOverlay" onclick="toggleMenu(false)">
     <div class="links-menu" onclick="event.stopPropagation()">
         <div class="menu-header">
@@ -425,7 +435,7 @@ HTML_TEMPLATE = """
         <i class="fa-solid fa-terminal"></i> MENU
     </button>
 
-<div class="ascii-header">
+    <div class="ascii-header">
 ██╗  ██╗██████╗ 
 ██║ ██╔╝██╔══██╗
 █████╔╝ ██████╔╝
@@ -434,9 +444,7 @@ HTML_TEMPLATE = """
 ╚═╝  ╚═╝╚═╝  ╚═╝
 [ SYSTEM v1.0 ]</div>
 
-
-
-    <h1>S.KANHAIYA_LIKE+INFO</h1>
+    <h1>FF MULTI-EXTRACTOR</h1>
     <div class="subtitle">Secure Request Terminal</div>
 
     <div class="stats-box">
@@ -480,6 +488,47 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
+    // 🔀 MATRIX DIGITAL RAIN ENGINE
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {{
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }}
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const katakana = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+-=';
+    const alphabet = katakana.split('');
+
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+
+    const rainDrops = [];
+    for (let x = 0; x < columns; x++) {{
+        rainDrops[x] = 1;
+    }}
+
+    function drawMatrix() {{
+        ctx.fillStyle = 'rgba(5, 8, 14, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#00ff66';
+        ctx.font = fontSize + 'px monospace';
+
+        for (let i = 0; i < rainDrops.length; i++) {{
+            const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+            ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+            if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {{
+                rainDrops[i] = 0;
+            }}
+            rainDrops[i]++;
+        }}
+    }}
+    setInterval(drawMatrix, 30);
+
     function toggleMenu(show) {{
         document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
     }}
