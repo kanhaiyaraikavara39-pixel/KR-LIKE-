@@ -86,7 +86,7 @@ def update_user_like(ip_address):
     daily_stats[t]['ips'][ip_address] += 1  
     save_all()
 
-# ============ HTML + CSS + JS (HACKER STYLE) ============
+# ============ HTML + CSS + JS (HACKER STYLE WITH MATRIX RAIN) ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -96,7 +96,7 @@ HTML_TEMPLATE = """
     <title>⚡ KR TERMINAL v1.0 ⚡</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {{
+        :root {
             --bg-color: #05080e;
             --card-bg: #0a0f1d;
             --primary: #00ff66;
@@ -106,9 +106,15 @@ HTML_TEMPLATE = """
             --text-main: #cddecb;
             --terminal-border: #1a2f4c;
             --alert-red: #ff3333;
-        }}
+        }
         
-        body {{
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             font-family: 'Courier New', Courier, monospace;
             background-color: var(--bg-color);
             color: var(--text-main);
@@ -119,12 +125,22 @@ HTML_TEMPLATE = """
             align-items: center;
             min-height: 100vh;
             position: relative;
-            background-image: linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }}
+            overflow-x: hidden;
+        }
         
-        .container {{
+        /* 🔥 Matrix Rain Canvas Background Animation */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .container {
             background: var(--card-bg);
             padding: 25px;
             border-radius: 4px;
@@ -134,10 +150,12 @@ HTML_TEMPLATE = """
             border: 2px solid var(--primary);
             box-sizing: border-box;
             position: relative;
-        }}
+            z-index: 2;
+            backdrop-filter: blur(1px);
+        }
         
         /* 💎 VIP ASCII HEADER */
-        .ascii-header {{
+        .ascii-header {
             text-align: center;
             color: var(--primary);
             font-size: 10px;
@@ -146,9 +164,9 @@ HTML_TEMPLATE = """
             margin-bottom: 15px;
             text-shadow: 0 0 8px var(--primary);
             font-weight: bold;
-        }}
+        }
 
-        .menu-trigger-btn {{
+        .menu-trigger-btn {
             position: absolute;
             top: 15px;
             right: 15px;
@@ -163,13 +181,13 @@ HTML_TEMPLATE = """
             cursor: pointer;
             transition: 0.2s;
             width: auto;
-        }}
-        .menu-trigger-btn:hover {{
+        }
+        .menu-trigger-btn:hover {
             background: rgba(0, 229, 255, 0.2);
             box-shadow: 0 0 10px var(--secondary);
-        }}
+        }
 
-        .links-menu-overlay {{
+        .links-menu-overlay {
             display: none;
             position: fixed;
             top: 0;
@@ -179,8 +197,8 @@ HTML_TEMPLATE = """
             background: rgba(0, 0, 0, 0.85);
             z-index: 999;
             backdrop-filter: blur(5px);
-        }}
-        .links-menu {{
+        }
+        .links-menu {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -196,22 +214,22 @@ HTML_TEMPLATE = """
             box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
             z-index: 1000;
             box-sizing: border-box;
-        }}
-        .menu-header {{
+        }
+        .menu-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px solid var(--secondary);
-        }}
-        .menu-header h2 {{
+        }
+        .menu-header h2 {
             margin: 0;
             font-size: 16px;
             color: var(--secondary);
             letter-spacing: 1px;
-        }}
-        .close-menu-btn {{
+        }
+        .close-menu-btn {
             background: none;
             border: none;
             color: var(--text-main);
@@ -219,15 +237,15 @@ HTML_TEMPLATE = """
             cursor: pointer;
             padding: 0;
             width: auto;
-        }}
-        .close-menu-btn:hover {{ color: var(--alert-red); }}
+        }
+        .close-menu-btn:hover { color: var(--alert-red); }
         
-        .menu-grid {{
+        .menu-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
-        }}
-        .menu-link-item {{
+        }
+        .menu-link-item {
             background: #0d1527;
             color: var(--text-main);
             padding: 12px;
@@ -240,31 +258,31 @@ HTML_TEMPLATE = """
             justify-content: space-between;
             border: 1px solid var(--terminal-border);
             transition: 0.2s;
-        }}
-        .menu-link-item:hover {{
+        }
+        .menu-link-item:hover {
             background: rgba(0, 229, 255, 0.1);
             color: var(--secondary);
             transform: translateX(4px);
             border-color: var(--secondary);
-        }}
+        }
 
-        h1 {{
+        h1 {
             text-align: center;
             color: var(--primary);
             font-size: 22px;
             margin: 5px 0;
             letter-spacing: 2px;
             text-shadow: 0 0 5px var(--primary);
-        }}
-        .subtitle {{
+        }
+        .subtitle {
             text-align: center;
             color: #6482a6;
             font-size: 12px;
             margin-bottom: 25px;
             text-transform: uppercase;
-        }}
+        }
         
-        .stats-box {{
+        .stats-box {
             background: #02050a;
             padding: 12px;
             border-radius: 2px;
@@ -274,19 +292,19 @@ HTML_TEMPLATE = """
             font-size: 13px;
             border: 1px solid var(--terminal-border);
             border-left: 4px solid var(--primary);
-        }}
+        }
         
-        .input-group {{
+        .input-group {
             margin-bottom: 18px;
-        }}
-        .input-group label {{
+        }
+        .input-group label {
             display: block;
             margin-bottom: 8px;
             font-size: 13px;
             color: var(--primary);
             text-transform: uppercase;
-        }}
-        .input-group input, .input-group select {{
+        }
+        .input-group input, .input-group select {
             width: 100%;
             padding: 12px;
             border-radius: 2px;
@@ -296,19 +314,19 @@ HTML_TEMPLATE = """
             box-sizing: border-box;
             font-size: 15px;
             font-family: 'Courier New', Courier, monospace;
-        }}
-        .input-group input:focus, .input-group select:focus {{
+        }
+        .input-group input:focus, .input-group select:focus {
             border-color: var(--primary);
             outline: none;
             box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
-        }}
+        }
         
-        .btn-container {{
+        .btn-container {
             display: flex;
             gap: 12px;
             margin-top: 10px;
-        }}
-        button {{
+        }
+        button {
             flex: 1;
             padding: 14px;
             color: #000;
@@ -324,29 +342,29 @@ HTML_TEMPLATE = """
             justify-content: center;
             gap: 8px;
             text-transform: uppercase;
-        }}
-        .btn-like {{ background: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 102, 0.3); }}
-        .btn-like:hover {{ background: var(--primary-hover); box-shadow: 0 0 15px var(--primary); }}
-        .btn-info {{ background: var(--secondary); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }}
-        .btn-info:hover {{ background: var(--secondary-hover); box-shadow: 0 0 15px var(--secondary); }}
+        }
+        .btn-like { background: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 102, 0.3); }
+        .btn-like:hover { background: var(--primary-hover); box-shadow: 0 0 15px var(--primary); }
+        .btn-info { background: var(--secondary); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
+        .btn-info:hover { background: var(--secondary-hover); box-shadow: 0 0 15px var(--secondary); }
         
-        #result {{
+        #result {
             margin-top: 20px;
             display: none;
             font-size: 13px;
             line-height: 1.6;
-        }}
-        .success-res {{ background: #041a10; border: 1px solid var(--primary); padding: 15px; border-radius: 2px; color: var(--primary); }}
-        .error-res {{ background: #1a0505; border: 1px solid var(--alert-red); padding: 15px; border-radius: 2px; color: var(--alert-red); }}
+        }
+        .success-res { background: #041a10; border: 1px solid var(--primary); padding: 15px; border-radius: 2px; color: var(--primary); }
+        .error-res { background: #1a0505; border: 1px solid var(--alert-red); padding: 15px; border-radius: 2px; color: var(--alert-red); }
         
         /* प्रोफाइल कार्ड डिजाइन */
-        .info-card {{
+        .info-card {
             background: #02050a;
             border: 1px solid var(--terminal-border);
             border-radius: 2px;
             padding: 15px;
-        }}
-        .section-title {{
+        }
+        .section-title {
             color: var(--secondary);
             font-size: 13px;
             font-weight: bold;
@@ -358,22 +376,22 @@ HTML_TEMPLATE = """
             display: flex;
             align-items: center;
             gap: 6px;
-        }}
-        .section-title:first-of-type {{ margin-top: 0; }}
-        .info-row {{
+        }
+        .section-title:first-of-type { margin-top: 0; }
+        .info-row {
             display: flex;
             justify-content: space-between;
             padding: 6px 0;
             border-bottom: 1px solid rgba(0, 255, 102, 0.05);
-        }}
-        .info-label {{ color: #6482a6; font-size: 12px; }}
-        .info-value {{ color: var(--text-main); font-weight: bold; font-size: 12.5px; }}
+        }
+        .info-label { color: #6482a6; font-size: 12px; }
+        .info-value { color: var(--text-main); font-weight: bold; font-size: 12.5px; }
         
-        .val-highlight {{ color: #ffaa00; }}
-        .val-success {{ color: var(--primary); }}
-        .val-heart {{ color: #ff0077; }}
+        .val-highlight { color: #ffaa00; }
+        .val-success { color: var(--primary); }
+        .val-heart { color: #ff0077; }
         
-        .info-sig {{
+        .info-sig {
             background: rgba(0, 255, 102, 0.02);
             padding: 10px;
             border-radius: 2px;
@@ -383,9 +401,9 @@ HTML_TEMPLATE = """
             color: #a4b8c9;
             font-size: 12px;
             word-break: break-all;
-        }}
+        }
 
-        .raw-data-box {{
+        .raw-data-box {
             background: #010204;
             border: 1px solid var(--terminal-border);
             border-radius: 2px;
@@ -393,20 +411,22 @@ HTML_TEMPLATE = """
             margin-top: 15px;
             max-height: 250px;
             overflow-y: auto;
-        }}
-        .raw-data-box pre {{
+        }
+        .raw-data-box pre {
             margin: 0;
             white-space: pre-wrap;
             word-wrap: break-word;
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
             color: var(--secondary);
-        }}
+        }
 
-        .loader {{ display: none; text-align: center; margin-top: 15px; color: var(--primary); }}
+        .loader { display: none; text-align: center; margin-top: 15px; color: var(--primary); }
     </style>
 </head>
 <body>
+
+<canvas id="matrix-canvas"></canvas>
 
 <div class="links-menu-overlay" id="menuOverlay" onclick="toggleMenu(false)">
     <div class="links-menu" onclick="event.stopPropagation()">
@@ -426,13 +446,13 @@ HTML_TEMPLATE = """
     </button>
 
     <div class="ascii-header">
-██╗  ██╗██████╗ 
-██║  ██║██╔══██╗
-███████║██████╔╝
-██╔══██║██╔══██╗
-██║  ██║██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝
-[ SYSTEM v1.0 ]</div>
+███████╗██╗  ██╗ █████╗ ███╗   ██╗██╗  ██╗ █████╗ ██╗   ██╗ █████╗ 
+██╔════╝██║  ██║██╔══██╗████╗  ██║██║  ██║██╔══██╗╚██╗ ██╔╝██╔══██╗
+███████╗███████║███████║██╔██╗ ██║███████║███████║ ╚████╔╝ ███████║
+╚════██║██╔══██║██╔══██║██║╚██╗██║██╔══██║██╔══██║  ╚██╔╝  ██╔══██║
+███████║██║  ██║██║  ██║██║ ╚████║██║  ██║██║  ██║   ██║   ██║  ██║
+╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝
+    </div>
 
     <h1>FF MULTI-EXTRACTOR</h1>
     <div class="subtitle">Secure Request Terminal</div>
@@ -478,48 +498,104 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
-    function toggleMenu(show) {{
+    // ==================== MATRIX RAIN ANIMATION ====================
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let columns = [];
+    let drops = [];
+    let matrixChars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{};:<>?";
+    
+    function setupMatrix() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        
+        columns = Math.floor(width / 20);
+        drops = [];
+        for(let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -height;
+        }
+    }
+    
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(5, 8, 14, 0.05)';
+        ctx.fillRect(0, 0, width, height);
+        
+        ctx.fillStyle = '#00ff66';
+        ctx.font = '18px "Courier New", monospace';
+        
+        for(let i = 0; i < drops.length; i++) {
+            const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+            const x = i * 20;
+            const y = drops[i] * 20;
+            
+            // glowing effect
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#00ff66';
+            ctx.fillText(text, x, y);
+            
+            if(y > height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+        requestAnimationFrame(drawMatrix);
+    }
+    
+    window.addEventListener('resize', () => {
+        setupMatrix();
+    });
+    
+    setupMatrix();
+    drawMatrix();
+    // ================================================================
+    
+    function toggleMenu(show) {
         document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
-    }}
+    }
 
-    async function processAction(actionType) {{
+    async function processAction(actionType) {
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
         const loader = document.getElementById('loader');
         const loaderText = document.getElementById('loaderText');
         const resultDiv = document.getElementById('result');
 
-        if (!uid.trim()) {{
+        if (!uid.trim()) {
             alert("ALERT: Target UID required!");
             return;
-        }}
+        }
 
         resultDiv.style.display = 'none';
         loader.style.display = 'block';
         
-        if (actionType === 'like') {{
+        if (actionType === 'like') {
             loaderText.innerText = "INJECTING EXPLOIT: Sending likes to node...";
-        }} else {{
+        } else {
             loaderText.innerText = "DECRYPTING NODE: Extracting profile layout...";
-        }}
+        }
 
         const formData = new FormData();
         formData.append('region', region);
         formData.append('uid', uid);
         formData.append('action', actionType);
 
-        try {{
-            const response = await fetch('/api/process', {{
+        try {
+            const response = await fetch('/api/process', {
                 method: 'POST',
                 body: formData
-            }});
+            });
             const data = await response.json();
             
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             
-            if (data.status === 'success') {{
-                if (actionType === 'like') {{
+            if (data.status === 'success') {
+                if (actionType === 'like') {
                     resultDiv.className = 'success-res';
                     resultDiv.innerHTML = "<h3>⚡ PACKET INJECTED SUCCESSFULLY!</h3>" +
                         "<b>TARGET ALIAS:</b> " + data.player + "<br>" +
@@ -527,7 +603,7 @@ HTML_TEMPLATE = """
                         "<b>NODE LEVEL:</b> " + data.level + "<br>" +
                         "<b>LOAD SENT:</b> +" + data.given + "<br>" +
                         "<b>DATABASE SYNC:</b> " + data.before + " ➔ " + data.after;
-                }} else {{
+                } else {
                     resultDiv.removeAttribute('class');
                     
                     let res = data.info;
@@ -566,17 +642,17 @@ HTML_TEMPLATE = """
                     
                     resultDiv.innerHTML = infoHTML;
                 }}
-            }} else {{
+            } else {
                 resultDiv.className = 'error-res';
                 resultDiv.innerHTML = "❌ FAULT ERROR: " + data.message;
-            }}
-        }} catch (error) {{
+            }
+        } catch (error) {
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             resultDiv.className = 'error-res';
             resultDiv.innerHTML = "❌ CONNECTION FAILURE: Server node unreachable.";
-        }}
-    }}
+        }
+    }
 </script>
 </body>
 </html>
