@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import aiohttp
+import asyncio
 from datetime import date, datetime
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -11,6 +12,7 @@ app = FastAPI()
 # ============ CONFIGURATION ============
 LIKE_API_URL = "https://kanhaiya-raikwar.vercel.app/"
 INFO_API_URL = "https://s-kanhaiya-ff-info.vercel.app/player-info"
+TOKEN_API_URL = "https://jwt-id-token.vercel.app/api/token"
 ENCODED_KEY = "WkVYWFk="
 API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
@@ -86,25 +88,27 @@ def update_user_like(ip_address):
     daily_stats[t]['ips'][ip_address] += 1  
     save_all()
 
-# ============ HTML + CSS + JS (ANIMATED HACKER STYLE) ============
+# ============ HTML + CSS + JS (COLORFUL CYBERPUNK TERMINAL) ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ KR TERMINAL v1.0 ⚡</title>
+    <title>⚡ S.KANHAIYA SYSTEM v1.0 ⚡</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {{
-            --bg-color: #05080e;
-            --card-bg: rgba(10, 15, 29, 0.85); /* 🛠️ थोड़ा ट्रांसपेरेंट किया ताकि एनीमेशन दिखे */
+            --bg-color: #030712;
+            --card-bg: rgba(15, 23, 42, 0.8);
             --primary: #00ff66;
-            --primary-hover: #00cc52;
+            --primary-glow: rgba(0, 255, 102, 0.4);
             --secondary: #00e5ff;
-            --secondary-hover: #00b3cc;
-            --text-main: #cddecb;
-            --terminal-border: #1a2f4c;
+            --secondary-glow: rgba(0, 229, 255, 0.4);
+            --accent: #d946ef;
+            --accent-glow: rgba(217, 70, 239, 0.4);
+            --text-main: #e2e8f0;
+            --terminal-border: #1e293b;
             --alert-red: #ff3333;
         }}
         
@@ -122,39 +126,47 @@ HTML_TEMPLATE = """
             overflow-x: hidden;
         }}
         
-        /* 🎥 MATRIX ANIMATION CANVAS */
         #matrixCanvas {{
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1; /* बैकग्राउंड में रहेगा */
-            opacity: 0.15; /* आँखों में न चुभे इसलिए परफेक्ट ओपेसिटी */
+            z-index: -1;
+            opacity: 0.2;
         }}
         
         .container {{
             background: var(--card-bg);
             padding: 25px;
-            border-radius: 4px;
-            box-shadow: 0 0 30px rgba(0, 255, 102, 0.15);
+            border-radius: 8px;
+            box-shadow: 0 0 35px rgba(0, 229, 255, 0.15);
             width: 100%;
             max-width: 500px;
-            border: 2px solid var(--primary);
+            border: 2px solid var(--secondary);
             box-sizing: border-box;
             position: relative;
-            backdrop-filter: blur(4px); /* ब्लर इफेक्ट से टेक्स्ट साफ़ दिखेगा */
+            backdrop-filter: blur(6px);
         }}
         
-        .ascii-header {{
+        /* ✨ NATURAL COLORFUL RGB BRANDING (NO BOX) */
+        .brand-header {{
             text-align: center;
-            color: var(--primary);
-            font-size: 10px;
-            white-space: pre;
-            line-height: 1.2;
-            margin-bottom: 15px;
-            text-shadow: 0 0 8px var(--primary);
-            font-weight: bold;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00ff66, #00e5ff, #d946ef, #00ff66);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: flowColors 5s linear infinite;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+        }}
+
+        @keyframes flowColors {{
+            0% {{ background-position: 0% 50%; }}
+            100% {{ background-position: 100% 50%; }}
         }}
 
         .menu-trigger-btn {{
@@ -162,10 +174,10 @@ HTML_TEMPLATE = """
             top: 15px;
             right: 15px;
             background: transparent;
-            color: var(--secondary);
-            border: 1px solid var(--secondary);
+            color: var(--accent);
+            border: 1px solid var(--accent);
             padding: 6px 12px;
-            border-radius: 2px;
+            border-radius: 4px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 12px;
             font-weight: bold;
@@ -174,8 +186,8 @@ HTML_TEMPLATE = """
             width: auto;
         }}
         .menu-trigger-btn:hover {{
-            background: rgba(0, 229, 255, 0.2);
-            box-shadow: 0 0 10px var(--secondary);
+            background: rgba(217, 70, 239, 0.2);
+            box-shadow: 0 0 10px var(--accent);
         }}
 
         .links-menu-overlay {{
@@ -194,15 +206,15 @@ HTML_TEMPLATE = """
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: #070c14;
-            border: 2px solid var(--secondary);
-            border-radius: 4px;
+            background: #090d16;
+            border: 2px solid var(--accent);
+            border-radius: 6px;
             width: 90%;
             max-width: 400px;
             max-height: 75vh;
             overflow-y: auto;
             padding: 20px;
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 30px var(--accent-glow);
             z-index: 1000;
             box-sizing: border-box;
         }}
@@ -212,12 +224,12 @@ HTML_TEMPLATE = """
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--secondary);
+            border-bottom: 1px solid var(--accent);
         }}
         .menu-header h2 {{
             margin: 0;
             font-size: 16px;
-            color: var(--secondary);
+            color: var(--accent);
             letter-spacing: 1px;
         }}
         .close-menu-btn {{
@@ -240,7 +252,7 @@ HTML_TEMPLATE = """
             background: #0d1527;
             color: var(--text-main);
             padding: 12px;
-            border-radius: 2px;
+            border-radius: 4px;
             text-decoration: none;
             font-size: 13px;
             font-weight: bold;
@@ -251,32 +263,32 @@ HTML_TEMPLATE = """
             transition: 0.2s;
         }}
         .menu-link-item:hover {{
-            background: rgba(0, 229, 255, 0.1);
-            color: var(--secondary);
+            background: rgba(217, 70, 239, 0.15);
+            color: var(--accent);
             transform: translateX(4px);
-            border-color: var(--secondary);
+            border-color: var(--accent);
         }}
 
         h1 {{
             text-align: center;
-            color: var(--primary);
-            font-size: 22px;
+            color: var(--secondary);
+            font-size: 20px;
             margin: 5px 0;
             letter-spacing: 2px;
-            text-shadow: 0 0 5px var(--primary);
+            text-shadow: 0 0 8px var(--secondary-glow);
         }}
         .subtitle {{
             text-align: center;
-            color: #6482a6;
-            font-size: 12px;
+            color: #64748b;
+            font-size: 11px;
             margin-bottom: 25px;
             text-transform: uppercase;
         }}
         
         .stats-box {{
-            background: #02050a;
+            background: #090f1c;
             padding: 12px;
-            border-radius: 2px;
+            border-radius: 4px;
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
@@ -291,25 +303,26 @@ HTML_TEMPLATE = """
         .input-group label {{
             display: block;
             margin-bottom: 8px;
-            font-size: 13px;
-            color: var(--primary);
+            font-size: 12px;
+            color: var(--secondary);
             text-transform: uppercase;
+            font-weight: bold;
         }}
         .input-group input, .input-group select {{
             width: 100%;
             padding: 12px;
-            border-radius: 2px;
+            border-radius: 4px;
             border: 1px solid var(--terminal-border);
-            background: #02050a;
-            color: var(--primary);
+            background: #040812;
+            color: #ffffff;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: 14px;
             font-family: 'Courier New', Courier, monospace;
         }}
         .input-group input:focus, .input-group select:focus {{
-            border-color: var(--primary);
+            border-color: var(--secondary);
             outline: none;
-            box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+            box-shadow: 0 0 8px var(--secondary-glow);
         }}
         
         .btn-container {{
@@ -320,11 +333,11 @@ HTML_TEMPLATE = """
         button {{
             flex: 1;
             padding: 14px;
-            color: #000;
+            color: #000000;
             border: none;
-            border-radius: 2px;
-            font-size: 14px;
-            font-weight: bold;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 900;
             font-family: 'Courier New', Courier, monospace;
             cursor: pointer;
             transition: 0.2s;
@@ -334,24 +347,33 @@ HTML_TEMPLATE = """
             gap: 8px;
             text-transform: uppercase;
         }}
-        .btn-like {{ background: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 102, 0.3); }}
-        .btn-like:hover {{ background: var(--primary-hover); box-shadow: 0 0 15px var(--primary); }}
-        .btn-info {{ background: var(--secondary); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }}
-        .btn-info:hover {{ background: var(--secondary-hover); box-shadow: 0 0 15px var(--secondary); }}
+        .btn-like {{ background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }}
+        .btn-like:hover {{ background: #00dd55; box-shadow: 0 0 15px var(--primary); }}
+        .btn-info {{ background: var(--secondary); box-shadow: 0 0 10px var(--secondary-glow); }}
+        .btn-info:hover {{ background: #00bcd4; box-shadow: 0 0 15px var(--secondary); }}
+        .btn-token {{ background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); color: #ffffff; }}
+        .btn-token:hover {{ background: #c026d3; box-shadow: 0 0 15px var(--accent); }}
         
-        #result {{
+        .panel-divider {{
+            margin: 30px 0 20px 0;
+            border: none;
+            border-top: 2px dashed var(--terminal-border);
+            text-align: center;
+        }}
+        
+        #result, #tokenResult {{
             margin-top: 20px;
             display: none;
             font-size: 13px;
             line-height: 1.6;
         }}
-        .success-res {{ background: #041a10; border: 1px solid var(--primary); padding: 15px; border-radius: 2px; color: var(--primary); }}
-        .error-res {{ background: #1a0505; border: 1px solid var(--alert-red); padding: 15px; border-radius: 2px; color: var(--alert-red); }}
+        .success-res {{ background: #022c16; border: 1px solid var(--primary); padding: 15px; border-radius: 4px; color: var(--primary); }}
+        .error-res {{ background: #2d0606; border: 1px solid var(--alert-red); padding: 15px; border-radius: 4px; color: var(--alert-red); }}
         
         .info-card {{
-            background: #02050a;
+            background: #040812;
             border: 1px solid var(--terminal-border);
-            border-radius: 2px;
+            border-radius: 4px;
             padding: 15px;
         }}
         .section-title {{
@@ -374,7 +396,7 @@ HTML_TEMPLATE = """
             padding: 6px 0;
             border-bottom: 1px solid rgba(0, 255, 102, 0.05);
         }}
-        .info-label {{ color: #6482a6; font-size: 12px; }}
+        .info-label {{ color: #64748b; font-size: 12px; }}
         .info-value {{ color: var(--text-main); font-weight: bold; font-size: 12.5px; }}
         
         .val-highlight {{ color: #ffaa00; }}
@@ -384,11 +406,11 @@ HTML_TEMPLATE = """
         .info-sig {{
             background: rgba(0, 255, 102, 0.02);
             padding: 10px;
-            border-radius: 2px;
+            border-radius: 4px;
             margin-top: 5px;
             border-left: 3px solid var(--secondary);
             font-style: italic;
-            color: #a4b8c9;
+            color: #94a3b8;
             font-size: 12px;
             word-break: break-all;
         }}
@@ -396,10 +418,10 @@ HTML_TEMPLATE = """
         .raw-data-box {{
             background: #010204;
             border: 1px solid var(--terminal-border);
-            border-radius: 2px;
+            border-radius: 4px;
             padding: 12px;
             margin-top: 15px;
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
         }}
         .raw-data-box pre {{
@@ -411,7 +433,7 @@ HTML_TEMPLATE = """
             color: var(--secondary);
         }}
 
-        .loader {{ display: none; text-align: center; margin-top: 15px; color: var(--primary); }}
+        .loader {{ display: none; text-align: center; margin-top: 15px; color: var(--secondary); }}
     </style>
 </head>
 <body>
@@ -421,7 +443,7 @@ HTML_TEMPLATE = """
 <div class="links-menu-overlay" id="menuOverlay" onclick="toggleMenu(false)">
     <div class="links-menu" onclick="event.stopPropagation()">
         <div class="menu-header">
-            <h2><i class="fa-solid fa-code-branch"></i> TERMINAL NAV</h2>
+            <h2><i class="fa-solid fa-code-branch"></i> TERMINAL NAVIGATION</h2>
             <button class="close-menu-btn" onclick="toggleMenu(false)"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="menu-grid">
@@ -432,23 +454,16 @@ HTML_TEMPLATE = """
 
 <div class="container">
     <button type="button" class="menu-trigger-btn" onclick="toggleMenu(true)">
-        <i class="fa-solid fa-terminal"></i> MENU
+        <i class="fa-solid fa-bars"></i> LINKS
     </button>
 
-    <div class="ascii-header">
-██╗  ██╗██████╗ 
-██║ ██╔╝██╔══██╗
-█████╔╝ ██████╔╝
-██╔═██╗ ██╔══██╗
-██║  ██╗██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝
-[ SYSTEM v2.0 ]</div>
+    <div class="brand-header">S.KANHAIYA</div>
 
-    <h1>S.KANHAIYA_LIKE+INFO-PANEL</h1>
-    <div class="subtitle">Secure Request Terminal</div>
+    <h1>FF MULTI-EXTRACTOR</h1>
+    <div class="subtitle">Secure Node Control Center</div>
 
     <div class="stats-box">
-        <span>STATUS: <strong style="color: var(--primary);">{bot_status}</strong></span>
+        <span>SYSTEM STATUS: <strong style="color: var(--primary);">{bot_status}</strong></span>
         <span>LIMIT: <strong>{remaining} / {daily_limit}</strong></span>
     </div>
 
@@ -466,7 +481,7 @@ HTML_TEMPLATE = """
 
         <div class="input-group">
             <label><i class="fa-solid fa-fingerprint"></i> TARGET PLAYER UID</label>
-            <input type="text" name="uid" id="uid" placeholder="Enter target UID..." required>
+            <input type="text" name="uid" id="uid" placeholder="Enter target player UID...">
         </div>
 
         <div class="btn-container">
@@ -478,13 +493,35 @@ HTML_TEMPLATE = """
             </button>
         </div>
     </form>
-
+    
     <div class="loader" id="loader">
-        <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="margin-bottom: 10px;"></i>
-        <p style="margin:0; font-size:12px;" id="loaderText">CONNECTING TO SERVER...</p>
+        <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+        <p style="margin:5px 0 0 0; font-size:12px;" id="loaderText">CONNECTING TO NODES...</p>
     </div>
-
     <div id="result"></div>
+
+    <div class="panel-divider"></div>
+
+    <div class="brand-header" style="font-size: 18px; color: var(--accent);">GUEST TOKEN CREATOR</div>
+    <form id="tokenForm" style="margin-top: 15px;">
+        <div class="input-group">
+            <label><i class="fa-solid fa-user-secret"></i> GUEST ID / UID</label>
+            <input type="text" id="tokenUid" placeholder="Enter guest account UID...">
+        </div>
+        <div class="input-group">
+            <label><i class="fa-solid fa-key"></i> ACCOUNT PASSWORD</label>
+            <input type="password" id="tokenPassword" placeholder="Enter guest account password...">
+        </div>
+        <button type="button" class="btn-token" onclick="generateGuestToken()">
+            <i class="fa-solid fa-unlock-keyhole"></i> GENERATE TOKEN PAYLOAD
+        </button>
+    </form>
+    
+    <div class="loader" id="tokenLoader" style="color: var(--accent);">
+        <i class="fa-solid fa-terminal fa-spin fa-2x"></i>
+        <p style="margin:5px 0 0 0; font-size:12px;">DECRYPTING JWT HANDSHAKE...</p>
+    </div>
+    <div id="tokenResult"></div>
 </div>
 
 <script>
@@ -501,33 +538,24 @@ HTML_TEMPLATE = """
 
     const katakana = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+-=';
     const alphabet = katakana.split('');
-
     const fontSize = 14;
     const columns = canvas.width / fontSize;
-
     const rainDrops = [];
-    for (let x = 0; x < columns; x++) {{
-        rainDrops[x] = 1;
-    }}
+    for (let x = 0; x < columns; x++) {{ rainDrops[x] = 1; }}
 
     function drawMatrix() {{
-        ctx.fillStyle = 'rgba(5, 8, 14, 0.05)';
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.05)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         ctx.fillStyle = '#00ff66';
         ctx.font = fontSize + 'px monospace';
-
         for (let i = 0; i < rainDrops.length; i++) {{
             const text = alphabet[Math.floor(Math.random() * alphabet.length)];
             ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
-
-            if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {{
-                rainDrops[i] = 0;
-            }}
+            if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {{ rainDrops[i] = 0; }}
             rainDrops[i]++;
         }}
     }}
-    setInterval(drawMatrix, 30);
+    setInterval(drawMatrix, 35);
 
     function toggleMenu(show) {{
         document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
@@ -547,12 +575,7 @@ HTML_TEMPLATE = """
 
         resultDiv.style.display = 'none';
         loader.style.display = 'block';
-        
-        if (actionType === 'like') {{
-            loaderText.innerText = "INJECTING EXPLOIT: Sending likes to node...";
-        }} else {{
-            loaderText.innerText = "DECRYPTING NODE: Extracting profile layout...";
-        }}
+        loaderText.innerText = actionType === 'like' ? "INJECTING PACKETS: Auto-retrying on sync failure..." : "SYNCING DATA: Pulling live layout registry...";
 
         const formData = new FormData();
         formData.append('region', region);
@@ -560,10 +583,7 @@ HTML_TEMPLATE = """
         formData.append('action', actionType);
 
         try {{
-            const response = await fetch('/api/process', {{
-                method: 'POST',
-                body: formData
-            }});
+            const response = await fetch('/api/process', {{ method: 'POST', body: formData }});
             const data = await response.json();
             
             loader.style.display = 'none';
@@ -572,60 +592,100 @@ HTML_TEMPLATE = """
             if (data.status === 'success') {{
                 if (actionType === 'like') {{
                     resultDiv.className = 'success-res';
-                    resultDiv.innerHTML = "<h3>⚡ PACKET INJECTED SUCCESSFULLY!</h3>" +
-                        "<b>TARGET ALIAS:</b> " + data.player + "<br>" +
-                        "<b>UID Hash:</b> <code>" + data.uid + "</code><br>" +
-                        "<b>NODE LEVEL:</b> " + data.level + "<br>" +
-                        "<b>LOAD SENT:</b> +" + data.given + "<br>" +
-                        "<b>DATABASE SYNC:</b> " + data.before + " ➔ " + data.after;
+                    resultDiv.innerHTML = "<h3>⚡ EXPLOIT INJECTED!</h3>" +
+                        "<b>PLAYER:</b> " + data.player + "<br>" +
+                        "<b>UID:</b> <code>" + data.uid + "</code><br>" +
+                        "<b>LEVEL:</b> " + data.level + "<br>" +
+                        "<b>BOOSTED:</b> +" + data.given + "<br>" +
+                        "<b>REGISTRY SYNC:</b> " + data.before + " ➔ " + data.after;
                 }} else {{
                     resultDiv.removeAttribute('class');
-                    
                     let res = data.info;
                     let rawJsonString = JSON.stringify(data.raw, null, 4);
 
                     let infoHTML = '<div class="info-card">' +
-                        '<div class="section-title"><i class="fa-solid fa-terminal"></i> CORE REGISTRY DATA</div>' +
-                        '<div class="info-row"><span class="info-label">ALIAS (Name):</span><span class="info-value val-highlight">' + res.nickname + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">ACCOUNT ID:</span><span class="info-value">' + res.uid + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">ZONE:</span><span class="info-value">' + res.region + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">TIER LEVEL:</span><span class="info-value val-success">' + res.level + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">EXP COUNTER:</span><span class="info-value">' + res.exp + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">VALOR LIKES:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ' + res.likes + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">AUTH METHOD:</span><span class="info-value">' + res.account_type + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">STAMP TIMESTAMP:</span><span class="info-value">' + res.create_at + '</span></div>' +
+                        '<div class="section-title"><i class="fa-solid fa-user"></i> BASIC REGISTRY</div>' +
+                        '<div class="info-row"><span class="info-label">NICKNAME:</span><span class="info-value val-highlight">' + res.nickname + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">UID HASH:</span><span class="info-value">' + res.uid + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">ZONE REGION:</span><span class="info-value">' + res.region + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">LEVEL TIER:</span><span class="info-value val-success">' + res.level + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">EXP VALUE:</span><span class="info-value">' + res.exp + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">CORE LIKES:</span><span class="info-value val-heart"><i class="fa-solid fa-heart"></i> ' + res.likes + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">AUTH PLATFORM:</span><span class="info-value">' + res.account_type + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">CREATED TIMESTAMP:</span><span class="info-value">' + res.create_at + '</span></div>' +
                         
-                        '<div class="section-title"><i class="fa-solid fa-trophy"></i> RANK LOG DATA</div>' +
+                        '<div class="section-title"><i class="fa-solid fa-crosshairs"></i> SCORE MATRIX</div>' +
                         '<div class="info-row"><span class="info-label">BR RATING POINTS:</span><span class="info-value val-highlight">' + res.br_points + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">CS SCORE POINTS:</span><span class="info-value val-highlight">' + res.cs_points + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">PEAK RANK RECORD:</span><span class="info-value">' + res.max_rank + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">INTEGRITY MATRIX:</span><span class="info-value val-success">' + res.credit_score + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">LAST ONLINE PING:</span><span class="info-value">' + res.last_login + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">CS RANK SCORE:</span><span class="info-value val-highlight">' + res.cs_points + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">MAX RANK ACHIEVED:</span><span class="info-value">' + res.max_rank + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">INTEGRITY RATING:</span><span class="info-value val-success">' + res.credit_score + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">LAST RECORDED ONLINE:</span><span class="info-value">' + res.last_login + '</span></div>' +
 
-                        '<div class="section-title"><i class="fa-solid fa-paw"></i> COMPANION ID</div>' +
-                        '<div class="info-row"><span class="info-label">PET HASH ID:</span><span class="info-value">' + res.pet_id + '</span></div>' +
-                        '<div class="info-row"><span class="info-label">PET STAGE LVL:</span><span class="info-value">' + res.pet_level + '</span></div>' +
+                        '<div class="section-title"><i class="fa-solid fa-paw"></i> COMPANION ENTITY</div>' +
+                        '<div class="info-row"><span class="info-label">PET DESIGNATION:</span><span class="info-value">' + res.pet_id + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">PET LEVEL STAGE:</span><span class="info-value">' + res.pet_level + '</span></div>' +
                         
-                        '<div class="section-title"><i class="fa-solid fa-signature"></i> SIGNATURE MATRIX</div>' +
+                        '<div class="section-title"><i class="fa-solid fa-signature"></i> SIGNATURE KEY</div>' +
                         '<div class="info-sig">' + res.signature + '</div>' +
 
-                        '<div class="section-title" style="color: #a78bfa;"><i class="fa-solid fa-code"></i> RAW DATAFRAME PAYLOAD</div>' +
-                        '<div class="raw-data-box">' +
-                            '<pre>' + rawJsonString + '</pre>' +
-                        '</div>' +
+                        '<div class="section-title" style="color: #d946ef;"><i class="fa-solid fa-code"></i> RAW DATAFRAME LAYER</div>' +
+                        '<div class="raw-data-box"><pre>' + rawJsonString + '</pre></div>' +
                     '</div>';
-                    
                     resultDiv.innerHTML = infoHTML;
                 }}
             }} else {{
                 resultDiv.className = 'error-res';
-                resultDiv.innerHTML = "❌ FAULT ERROR: " + data.message;
+                resultDiv.innerHTML = "❌ TRANSACTION FAILURE: " + data.message;
             }}
         }} catch (error) {{
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             resultDiv.className = 'error-res';
-            resultDiv.innerHTML = "❌ CONNECTION FAILURE: Server node unreachable.";
+            resultDiv.innerHTML = "❌ SYSTEM FAULT: Master database offline.";
+        }}
+    }}
+
+    async function generateGuestToken() {{
+        const uid = document.getElementById('tokenUid').value;
+        const password = document.getElementById('tokenPassword').value;
+        const loader = document.getElementById('tokenLoader');
+        const resultDiv = document.getElementById('tokenResult');
+
+        if (!uid.trim() || !password.trim()) {{
+            alert("ALERT: Token Generation requires UID and Password!");
+            return;
+        }}
+
+        resultDiv.style.display = 'none';
+        loader.style.display = 'block';
+
+        const formData = new FormData();
+        formData.append('uid', uid);
+        formData.append('password', password);
+
+        try {{
+            const response = await fetch('/api/generate-token', {{ method: 'POST', body: formData }});
+            const data = await response.json();
+            
+            loader.style.display = 'none';
+            resultDiv.style.display = 'block';
+            
+            if (data.status === 'success') {{
+                resultDiv.className = 'success-res';
+                resultDiv.style.borderColor = 'var(--accent)';
+                resultDiv.style.color = '#ffffff';
+                resultDiv.innerHTML = "<h3>✅ TOKEN CODES GENERATED!</h3>" +
+                    "<p style='color:var(--accent); font-weight:bold; margin:5px 0;'>JWT PAYLOAD VALUE:</p>" +
+                    "<div class='raw-data-box' style='max-height:150px;'><pre style='color:#ffffff;'>" + JSON.stringify(data.payload, null, 4) + "</pre></div>";
+            }} else {{
+                resultDiv.className = 'error-res';
+                resultDiv.innerHTML = "❌ TOKEN GENERATION FAILED: " + data.message;
+            }}
+        }} catch(e) {{
+            loader.style.display = 'none';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'error-res';
+            resultDiv.innerHTML = "❌ ENDPOINT TIMEOUT: Token generation failed.";
         }}
     }}
 </script>
@@ -664,99 +724,119 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- प्लेयर इन्फो एक्शन ----
+    # ---- प्लेयर इन्फो एक्शन (WITH INSTANT AUTO-RETRY LOOP) ----
     if action == "info":
-        try:
-            url = f"{INFO_API_URL}?region={region}&uid={uid}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=12)) as resp:
-                    if resp.status == 200:
-                        raw_data = await resp.json()
-                        
-                        basic = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
-                        social = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
-                        credit = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
-                        pet = raw_data.get("petInfo") or raw_data.get("PetInfo") or {}
-                        
-                        last_login_ts = basic.get("lastLoginAt") or basic.get("lastLogin") or 0
-                        create_at_ts = basic.get("createAt") or basic.get("createTime") or 0
-                        
-                        try:
-                            last_login = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
-                        except: last_login = "N/A"
+        url = f"{INFO_API_URL}?region={region}&uid={uid}"
+        max_retries = 4
+        
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=6)) as resp:
+                        if resp.status == 200:
+                            raw_data = await resp.json()
                             
-                        try:
-                            create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
-                        except: create_at = "N/A"
+                            basic = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
+                            social = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
+                            credit = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
+                            pet = raw_data.get("petInfo") or raw_data.get("PetInfo") or {}
+                            
+                            last_login_ts = basic.get("lastLoginAt") or basic.get("lastLogin") or 0
+                            create_at_ts = basic.get("createAt") or basic.get("createTime") or 0
+                            
+                            try: last_login = datetime.fromtimestamp(int(last_login_ts)).strftime('%d-%m-%Y %H:%M') if last_login_ts else "N/A"
+                            except: last_login = "N/A"
+                            try: create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
+                            except: create_at = "N/A"
 
-                        gender_raw = social.get("gender", "N/A")
-                        gender = "Female ♀️" if "FEMALE" in gender_raw.upper() else "Male ♂️" if "MALE" in gender_raw.upper() else "N/A"
-                        prefer_mode = social.get("modePrefer", "N/A").replace("ModePrefer_", "")
+                            gender_raw = social.get("gender", "N/A")
+                            gender = "Female ♀️" if "FEMALE" in gender_raw.upper() else "Male ♂️" if "MALE" in gender_raw.upper() else "N/A"
+                            prefer_mode = social.get("modePrefer", "N/A").replace("ModePrefer_", "")
 
-                        clean_profile = {
-                            "nickname": basic.get("nickname") or basic.get("Nickname") or "Unknown",
-                            "uid": basic.get("accountId") or uid,
-                            "region": basic.get("region", region.upper()),
-                            "level": basic.get("level", "N/A"),
-                            "exp": basic.get("exp", "N/A"),
-                            "likes": basic.get("liked") or basic.get("Liked") or 0,
-                            "account_type": "Google/FB" if basic.get("accountType") == 1 else "Guest/Other",
-                            "create_at": create_at,
-                            "br_points": basic.get("rankingPoints", "N/A"),
-                            "cs_points": basic.get("csRank", "N/A"),
-                            "max_rank": basic.get("maxRank", "N/A"),
-                            "credit_score": credit.get("creditScore", "N/A"),
-                            "last_login": last_login,
-                            "pet_id": pet.get("id", "No Pet"),
-                            "pet_level": pet.get("level", "N/A"),
-                            "prefer_mode": prefer_mode,
-                            "gender": gender,
-                            "signature": social.get("signature") or "No Signature Set"
-                        }
-                        
-                        return JSONResponse({
-                            "status": "success", 
-                            "info": clean_profile,
-                            "raw": raw_data
-                        })
-                    else:
-                        return JSONResponse({"status": "error", "message": f"इन्फो एपीआई एरर: HTTP {resp.status}"})
-        except Exception as e:
-            return JSONResponse({"status": "error", "message": f"इन्फो निकालने में विफल: {str(e)}"})
+                            clean_profile = {
+                                "nickname": basic.get("nickname") or basic.get("Nickname") or "Unknown",
+                                "uid": basic.get("accountId") or uid,
+                                "region": basic.get("region", region.upper()),
+                                "level": basic.get("level", "N/A"),
+                                "exp": basic.get("exp", "N/A"),
+                                "likes": basic.get("liked") or basic.get("Liked") or 0,
+                                "account_type": "Google/FB" if basic.get("accountType") == 1 else "Guest/Other",
+                                "create_at": create_at,
+                                "br_points": basic.get("rankingPoints", "N/A"),
+                                "cs_points": basic.get("csRank", "N/A"),
+                                "max_rank": basic.get("maxRank", "N/A"),
+                                "credit_score": credit.get("creditScore", "N/A"),
+                                "last_login": last_login,
+                                "pet_id": pet.get("id", "No Pet"),
+                                "pet_level": pet.get("level", "N/A"),
+                                "prefer_mode": prefer_mode,
+                                "gender": gender,
+                                "signature": social.get("signature") or "No Signature Set"
+                            }
+                            
+                            return JSONResponse({"status": "success", "info": clean_profile, "raw": raw_data})
+            except Exception:
+                pass
+            
+            # अगर फेल हुआ तो बिना देरी किए तुरंत दोबारा कॉल करेगा (instant response के लिए)
+            await asyncio.sleep(0.1)
+            
+        return JSONResponse({"status": "error", "message": "प्लेयर इन्फो सर्वर अभी काफी बिजी है, कृपया दोबारा प्रयास करें!"})
 
-    # ---- लाइक भेजने का एक्शन ----
+    # ---- लाइक भेजने का एक्शन (WITH AUTO-RETRY LOOP) ----
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
-            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक लिमिट खत्म हो चुकी है! प्लेयर इन्फो अभी भी चेक कर सकते हैं।"})
+            return JSONResponse({"status": "error", "message": "आज की आपकी लाइक लिमिट खत्म हो चुकी है!"})
 
-        try:
-            url = f"{LIKE_API_URL}like?uid={uid}&region={region_upper}&key={API_KEY}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        api_status = data.get('status')
-                        
-                        if api_status == 1:
-                            update_user_like(client_ip)
-                            return JSONResponse({
-                                "status": "success",
-                                "player": data.get('PlayerNickname', 'Unknown'),
-                                "uid": data.get('UID', uid),
-                                "region": data.get('Region', region_upper),
-                                "level": data.get('Level', 'N/A'),
-                                "given": data.get('LikesGivenByAPI', 0),
-                                "before": data.get('LikesbeforeCommand', 0),
-                                "after": data.get('LikesafterCommand', 0)
-                            })
-                        elif api_status == 2:
-                            return JSONResponse({"status": "error", "message": "इस UID की आज की API लिमिट खत्म हो गई है।"})
-                        else:
-                            return JSONResponse({"status": "error", "message": "मुख्य सर्वर से गलत रिस्पॉन्स मिला।"})
-                    else:
-                        return JSONResponse({"status": "error", "message": f"लाइक सर्वर एरर कोड: HTTP {resp.status}"})
-        except Exception as e:
-            return JSONResponse({"status": "error", "message": f"कनेक्शन फ़ेल: {str(e)}"})
+        url = f"{LIKE_API_URL}like?uid={uid}&region={region_upper}&key={API_KEY}"
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            api_status = data.get('status')
+                            
+                            if api_status == 1:
+                                update_user_like(client_ip)
+                                return JSONResponse({
+                                    "status": "success",
+                                    "player": data.get('PlayerNickname', 'Unknown'),
+                                    "uid": data.get('UID', uid),
+                                    "region": data.get('Region', region_upper),
+                                    "level": data.get('Level', 'N/A'),
+                                    "given": data.get('LikesGivenByAPI', 0),
+                                    "before": data.get('LikesbeforeCommand', 0),
+                                    "after": data.get('LikesafterCommand', 0)
+                                })
+                            elif api_status == 2:
+                                return JSONResponse({"status": "error", "message": "इस UID की आज की API लिमिट खत्म हो गई है।"})
+            except Exception:
+                pass
+            await asyncio.sleep(0.1)
+            
+        return JSONResponse({"status": "error", "message": "लाइक सर्वर ओवरलोड है, कृपया फिर से कोशिश करें!"})
 
     return JSONResponse({"status": "error", "message": "अवैध एक्शन टाइप।"})
+
+# ---- NEW FEATURE ROUTE: TOKEN GENERATION ----
+@app.post("/api/generate-token")
+async def generate_token(uid: str = Form(...), password: str = Form(...)):
+    url = f"{TOKEN_API_URL}?uid={uid}&password={password}"
+    
+    # ⚡ टोकन जनरेटर के लिए भी ऑटो रीट्राई ताकि रिस्पॉन्स तुरंत मिले
+    for _ in range(3):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                    if resp.status == 200:
+                        payload_data = await resp.json()
+                        return JSONResponse({"status": "success", "payload": payload_data})
+        except Exception:
+            pass
+        await asyncio.sleep(0.1)
+        
+    return JSONResponse({"status": "error", "message": "टोकन एपीआई ने रिस्पॉन्स नहीं दिया, कृपया क्रेडेंशियल्स चेक करें।"})
