@@ -3,11 +3,13 @@ import json
 import base64
 import aiohttp
 import asyncio
-from datetime import date, datetime
-from fastapi import FastAPI, Request, Form
+from datetime import date, datetime, timedelta
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 app = FastAPI()
+security = HTTPBasic()
 
 # ============ CONFIGURATION ============
 LIKE_API_URL = "https://kanhaiya-raikwar.vercel.app/"
@@ -16,13 +18,20 @@ TOKEN_API_URL = "https://jwt-id-token.vercel.app/api/token"
 ENCODED_KEY = "WkVYWFk="
 API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
+# 🔐 एडमिन लॉगिन क्रेडेंशियल्स (आप इसे बदल सकते हैं)
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "Kanhaiya@789" # अपना पासवर्ड यहाँ बदलें
+
+# 💰 UPI कॉन्फ़िगरेशन
+UPI_ID = "9230844760@fam"
+
 DATA_FILES = {
     'stats': '/tmp/daily_stats.json',
     'users': '/tmp/user_limits.json',
-    'config': '/tmp/bot_config.json'
+    'config': '/tmp/bot_config.json',
+    'subs': '/tmp/subscriptions.json' # सब्सक्रिप्शन डेटा के लिए
 }
 
-# 🔗 आपकी सभी सेट की हुई लिंक्स
 MENU_LINKS = [
     {"title": "📢 Telegram group", "url": "https://t.me/+L4r9VbNDxJo4ZDJll"},
     {"title": "💬 TELEGRAM BOT", "url": "https://t.me/Kanhaiya789_bot"},
@@ -36,16 +45,20 @@ MENU_LINKS = [
 bot_status = "on"
 daily_stats = {}
 user_limits = {}
+subscriptions = {"pending": [], "active": []}
 daily_limit = 2
 
 def load_data():
-    global daily_stats, user_limits, bot_status, daily_limit
+    global daily_stats, user_limits, bot_status, daily_limit, subscriptions
     try:
         with open(DATA_FILES['stats'], 'r') as f: daily_stats = json.load(f)
     except: daily_stats = {}
     try:
         with open(DATA_FILES['users'], 'r') as f: user_limits = json.load(f)
     except: user_limits = {}
+    try:
+        with open(DATA_FILES['subs'], 'r') as f: subscriptions = json.load(f)
+    except: subscriptions = {"pending": [], "active": []}
     try:
         with open(DATA_FILES['config'], 'r') as f:
             cfg = json.load(f)
@@ -58,6 +71,7 @@ def save_all():
     try:
         with open(DATA_FILES['stats'], 'w') as f: json.dump(daily_stats, f, indent=2)
         with open(DATA_FILES['users'], 'w') as f: json.dump(user_limits, f, indent=2)
+        with open(DATA_FILES['subs'], 'w') as f: json.dump(subscriptions, f, indent=2)
         with open(DATA_FILES['config'], 'w') as f: json.dump({'status': bot_status, 'limit': daily_limit}, f, indent=2)
     except:
         pass
@@ -88,7 +102,57 @@ def update_user_like(ip_address):
     daily_stats[t]['ips'][ip_address] += 1  
     save_all()
 
-# ============ HTML + CSS + JS (COLORFUL CYBERPUNK TERMINAL) ============
+# एडमिन ऑथेंटिकेशन फंक्शन
+def admin_auth(credentials: HTTPBasicCredentials = Depends(security)):
+    if credentials.username != ADMIN_USERNAME or credentials.password != ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect Admin Credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+# ============ ⏰ BACKGROUND AUTO-LIKE TASK (CRON) ============
+# यह बैकग्राउंड टास्क हर सुबह एक्टिव सबस्क्राइबर्स को 100 लाइक्स भेजेगा
+async def daily_auto_like_cron():
+    while True:
+        now = datetime.now()
+        # हर सुबह 06:00 बजे रन होने के लिए टाइम सेट करें
+        target_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
+        if now > target_time:
+            target_time += timedelta(days=1)
+        
+        sleep_seconds = (target_time - now).total_seconds()
+        await asyncio.sleep(sleep_seconds)
+        
+        load_data()
+        today = date.today()
+        still_active = []
+        
+        for sub in subscriptions.get("active", []):
+            exp_date = datetime.strptime(sub["expiry"], "%Y-%m-%Y").date() if "-" in sub["expiry"] else today
+            if today <= exp_date:
+                # 100 लाइक्स भेजने का लूप (10-10 करके 10 बार हिट)
+                uid = sub["uid"]
+                for _ in range(10):
+                    try:
+                        url = f"{LIKE_API_URL}like?uid={uid}&region=IND&key={API_KEY}"
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(url, timeout=10) as resp:
+                                await resp.json()
+                    except:
+                        pass
+                    await asyncio.sleep(1) # सर्वर ब्लॉक न हो इसलिए थोड़ा गैप
+                still_active.append(sub)
+        
+        subscriptions["active"] = still_active
+        save_all()
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(daily_auto_like_cron())
+
+# ============ HTML + CSS + JS (CORE UI) ============
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="hi">
@@ -149,7 +213,6 @@ HTML_TEMPLATE = """
             backdrop-filter: blur(6px);
         }}
         
-        /* ✨ NATURAL COLORFUL RGB BRANDING (NO BOX) */
         .brand-header {{
             text-align: center;
             font-size: 28px;
@@ -353,6 +416,8 @@ HTML_TEMPLATE = """
         .btn-info:hover {{ background: #00bcd4; box-shadow: 0 0 15px var(--secondary); }}
         .btn-token {{ background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); color: #ffffff; }}
         .btn-token:hover {{ background: #c026d3; box-shadow: 0 0 15px var(--accent); }}
+        .btn-auto-plan {{ background: linear-gradient(135deg, #ffaa00, #ff5500); color: white; margin-top: 15px; box-shadow: 0 0 12px rgba(255,85,0,0.4); }}
+        .btn-auto-plan:hover {{ transform: scale(1.02); box-shadow: 0 0 20px rgba(255,85,0,0.6); }}
         
         .panel-divider {{
             margin: 30px 0 20px 0;
@@ -361,7 +426,7 @@ HTML_TEMPLATE = """
             text-align: center;
         }}
         
-        #result, #tokenResult {{
+        #result, #tokenResult, #autoResult {{
             margin-top: 20px;
             display: none;
             font-size: 13px;
@@ -370,6 +435,61 @@ HTML_TEMPLATE = """
         .success-res {{ background: #022c16; border: 1px solid var(--primary); padding: 15px; border-radius: 4px; color: var(--primary); }}
         .error-res {{ background: #2d0606; border: 1px solid var(--alert-red); padding: 15px; border-radius: 4px; color: var(--alert-red); }}
         
+        /* 🎁 SUBSCRIPTION MODAL POPUP */
+        .sub-modal {{
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1001;
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }}
+        .sub-modal-content {{
+            background: #090f1c;
+            border: 2px solid #ffaa00;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(255,170,0,0.3);
+            box-sizing: border-box;
+            position: relative;
+        }}
+        .plan-cards {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }}
+        .plan-card {{
+            border: 1px solid var(--terminal-border);
+            background: #040812;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }}
+        .plan-card.selected {{
+            border-color: #ffaa00;
+            background: rgba(255,170,0,0.1);
+            box-shadow: 0 0 10px rgba(255,170,0,0.2);
+        }}
+        .qr-area {{
+            text-align: center;
+            margin: 15px 0;
+            display: none;
+        }}
+        .qr-area img {{
+            border: 4px solid white;
+            border-radius: 4px;
+            background: white;
+        }}
+
         .info-card {{
             background: #040812;
             border: 1px solid var(--terminal-border);
@@ -452,6 +572,44 @@ HTML_TEMPLATE = """
     </div>
 </div>
 
+<div class="sub-modal" id="subModal">
+    <div class="sub-modal-content">
+        <button class="close-menu-btn" style="position:absolute; top:12px; right:15px;" onclick="toggleSubModal(false)"><i class="fa-solid fa-xmark"></i></button>
+        <div class="brand-header" style="font-size: 20px; color: #ffaa00;">AUTO LIKE SYSTEM</div>
+        <p style="font-size:11px; text-align:center; margin:0 0 10px 0; color:#64748b;">हर सुबह ऑटोमैटिक 100 लाइक्स भेजे जाएंगे</p>
+        
+        <div class="plan-cards">
+            <div class="plan-card" id="plan1" onclick="selectPlan(49, 20)">
+                <h4 style="margin:0; color:#ffaa00;">₹ 49 PLAN</h4>
+                <p style="margin:5px 0 0 0; font-size:12px;">20 दिन वैलिडिटी</p>
+            </div>
+            <div class="plan-card" id="plan2" onclick="selectPlan(79, 30)">
+                <h4 style="margin:0; color:#ffaa00;">₹ 79 PLAN</h4>
+                <p style="margin:5px 0 0 0; font-size:12px;">30 दिन वैलिडिटी</p>
+            </div>
+        </div>
+
+        <div class="qr-area" id="qrArea">
+            <p style="font-size:12px; color:var(--primary); margin-bottom:8px;">स्कैन करके पेमेंट करें:</p>
+            <img id="payQr" src="" width="160" height="160">
+            <p style="font-size:11px; color:#ffffff; margin:6px 0;">UPI: <code style="color:#00e5ff;">{upi_id}</code></p>
+            
+            <div class="input-group" style="margin-top:12px; text-align:left;">
+                <label>TARGET PLAYER UID</label>
+                <input type="text" id="subUid" placeholder="जिस UID पर ऑटो लाइक चाहिए...">
+            </div>
+            <div class="input-group" style="text-align:left;">
+                <label>TRANSACTION ID / UTR</label>
+                <input type="text" id="subTxid" placeholder="पेमेंट का Transaction ID डालें...">
+            </div>
+            <button type="button" class="btn-like" style="background:#ffaa00; font-size:12px;" onclick="submitSubRequest()">
+                <i class="fa-solid fa-paper-plane"></i> SUBMIT TO ADMIN
+            </button>
+        </div>
+        <div id="autoResult"></div>
+    </div>
+</div>
+
 <div class="container">
     <button type="button" class="menu-trigger-btn" onclick="toggleMenu(true)">
         <i class="fa-solid fa-bars"></i> LINKS
@@ -494,6 +652,10 @@ HTML_TEMPLATE = """
         </div>
     </form>
     
+    <button type="button" class="btn-auto-plan" onclick="toggleSubModal(true)">
+        <i class="fa-solid fa-bolt"></i> ACTIVATE AUTO-LIKE BOT (₹49 / ₹79)
+    </button>
+    
     <div class="loader" id="loader">
         <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
         <p style="margin:5px 0 0 0; font-size:12px;" id="loaderText">CONNECTING TO NODES...</p>
@@ -525,7 +687,10 @@ HTML_TEMPLATE = """
 </div>
 
 <script>
-    // 🔀 MATRIX DIGITAL RAIN ENGINE
+    let selectedAmount = 0;
+    let selectedDays = 0;
+
+    // MATRIX DIGITAL RAIN ENGINE
     const canvas = document.getElementById('matrixCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -561,6 +726,59 @@ HTML_TEMPLATE = """
         document.getElementById('menuOverlay').style.display = show ? 'block' : 'none';
     }}
 
+    function toggleSubModal(show) {{
+        document.getElementById('subModal').style.display = show ? 'flex' : 'none';
+        if(!show) {{
+            document.getElementById('autoResult').style.display = 'none';
+        }}
+    }}
+
+    function selectPlan(amount, days) {{
+        selectedAmount = amount;
+        selectedDays = days;
+        document.getElementById('plan1').className = amount === 49 ? 'plan-card selected' : 'plan-card';
+        document.getElementById('plan2').className = amount === 79 ? 'plan-card selected' : 'plan-card';
+        
+        // Dynamic QR code API generation
+        const upiStr = "upi://pay?pa={upi_id}&pn=SKANHAIYA&am=" + amount + "&cu=INR&tn=AutoLike_" + days + "Days";
+        document.getElementById('payQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(upiStr);
+        document.getElementById('qrArea').style.display = 'block';
+    }}
+
+    async function submitSubRequest() {{
+        const uid = document.getElementById('subUid').value;
+        const txid = document.getElementById('subTxid').value;
+        const resultDiv = document.getElementById('autoResult');
+
+        if(!uid.trim() || !txid.trim()) {{
+            alert("UID और Transaction ID डालना अनिवार्य है!");
+            return;
+        }}
+
+        const formData = new FormData();
+        formData.append('uid', uid);
+        formData.append('txid', txid);
+        formData.append('amount', selectedAmount);
+        formData.append('days', selectedDays);
+
+        try {{
+            const response = await fetch('/api/submit-subscription', {{ method: 'POST', body: formData }});
+            const data = await response.json();
+            resultDiv.style.display = 'block';
+            if(data.status === 'success') {{
+                resultDiv.className = 'success-res';
+                resultDiv.innerHTML = "✅ " + data.message;
+            }} else {{
+                resultDiv.className = 'error-res';
+                resultDiv.innerHTML = "❌ " + data.message;
+            }}
+        }} catch(e) {{
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'error-res';
+            resultDiv.innerHTML = "❌ सर्वर से कनेक्शन फ़ेल हुआ।";
+        }}
+    }}
+
     async function processAction(actionType) {{
         const region = document.getElementById('region').value;
         const uid = document.getElementById('uid').value;
@@ -585,7 +803,6 @@ HTML_TEMPLATE = """
         try {{
             const response = await fetch('/api/process', {{ method: 'POST', body: formData }});
             const data = await response.json();
-            
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             
@@ -666,7 +883,6 @@ HTML_TEMPLATE = """
         try {{
             const response = await fetch('/api/generate-token', {{ method: 'POST', body: formData }});
             const data = await response.json();
-            
             loader.style.display = 'none';
             resultDiv.style.display = 'block';
             
@@ -693,6 +909,61 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# ============ 👑 ADMIN DASHBOARD UI (HTML) ============
+ADMIN_HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>⚡ S.KANHAIYA ADMIN TERMINAL ⚡</title>
+    <style>
+        body {{ font-family: monospace; background: #030712; color: #00ff66; padding: 20px; }}
+        .header {{ text-align: center; border-bottom: 2px solid #ffaa00; padding-bottom: 10px; margin-bottom: 20px; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 15px; background: #090f1c; }}
+        th, td {{ border: 1px solid #1e293b; padding: 12px; text-align: left; }}
+        th {{ background: #1e293b; color: #00e5ff; }}
+        .btn {{ padding: 6px 12px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; font-family: monospace; }}
+        .btn-approve {{ background: #00ff66; color: black; }}
+        .btn-reject {{ background: #ff3333; color: white; }}
+        .section {{ margin-bottom: 40px; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>S.KANHAIYA CONTROL OVERRIDE</h1>
+        <p>SECURE ADMIN MANAGEMENT INTERFACE</p>
+        <a href="/" style="color:#00e5ff; text-decoration:none;">➔ BACK TO HOME SITE</a>
+    </div>
+
+    <div class="section">
+        <h2>📥 PENDING PAYMENT OVERVIEW ({pending_count})</h2>
+        <table>
+            <tr>
+                <th>TARGET UID</th>
+                <th>TRANSACTION / UTR ID</th>
+                <th>PLAN SELECTED</th>
+                <th>VALID DAYS</th>
+                <th>ACTION TRIGGER</th>
+            </tr>
+            {pending_rows}
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>✅ ACTIVE AUTO-LIKE BOT QUEUE ({active_count})</h2>
+        <table>
+            <tr>
+                <th>UID</th>
+                <th>PLAN STATUS</th>
+                <th>EXPIRY DATE</th>
+            </tr>
+            {active_rows}
+        </table>
+    </div>
+</body>
+</html>
+"""
+
 # ============ ROUTES ============
 
 @app.get("/", response_class=HTMLResponse)
@@ -710,9 +981,92 @@ async def home(request: Request):
         bot_status=bot_status.upper(),
         remaining=remaining,
         daily_limit=daily_limit,
-        menu_buttons_html=buttons_html
+        menu_buttons_html=buttons_html,
+        upi_id=UPI_ID
     )
 
+@app.post("/api/submit-subscription")
+async def submit_subscription(uid: str = Form(...), txid: str = Form(...), amount: int = Form(...), days: int = Form(...)):
+    if not uid.isdigit() or not txid.strip():
+        return JSONResponse({"status": "error", "message": "गलत UID या ट्रांजैक्शन आईडी दी गई है!"})
+    
+    load_data()
+    # डुप्लीकेट रिक्वेस्ट चेक से बचने के लिए
+    for req in subscriptions["pending"]:
+        if req["txid"] == txid:
+            return JSONResponse({"status": "error", "message": "यह Transaction ID पहले से ही वेरिफिकेशन के लिए पेंडिंग है!"})
+            
+    subscriptions["pending"].append({
+        "uid": uid,
+        "txid": txid,
+        "amount": amount,
+        "days": days
+    })
+    save_all()
+    return JSONResponse({"status": "success", "message": "आपकी रिक्वेस्ट एडमिन पैनल में भेज दी गई है। वेरिफिकेशन के तुरंत बाद ऑटो-लाइक चालू कर दिया जाएगा!"})
+
+# ==== SECURE ADMIN ACCESS GATEWAY ====
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel(username: str = Depends(admin_auth)):
+    load_data()
+    
+    p_rows = ""
+    for idx, item in enumerate(subscriptions["pending"]):
+        p_rows += f"""
+        <tr>
+            <td>{item['uid']}</td>
+            <td><code>{item['txid']}</code></td>
+            <td>₹ {item['amount']}</td>
+            <td>{item['days']} दिन</td>
+            <td>
+                <a href="/admin/approve/{idx}"><button class="btn btn-approve">APPROVE</button></a>
+                <a href="/admin/reject/{idx}"><button class="btn btn-reject">REJECT</button></a>
+            </td>
+        </tr>
+        """
+    if not p_rows:
+        p_rows = "<tr><td colspan='5' style='text-align:center;color:#64748b;'>कोई पेंडिंग रिक्वेस्ट नहीं है</td></tr>"
+
+    a_rows = ""
+    for item in subscriptions["active"]:
+        a_rows += f"<tr><td>{item['uid']}</td><td>₹{item['amount']} Plan ({item['days']} Days)</td><td>{item['expiry']}</td></tr>"
+    if not a_rows:
+        a_rows = "<tr><td colspan='3' style='text-align:center;color:#64748b;'>कोई भी बोट एक्टिव नहीं है</td></tr>"
+        
+    return ADMIN_HTML_TEMPLATE.format(
+        pending_count=len(subscriptions["pending"]),
+        active_count=len(subscriptions["active"]),
+        pending_rows=p_rows,
+        active_rows=a_rows
+    )
+
+@app.get("/admin/approve/{idx}")
+async def approve_sub(idx: int, username: str = Depends(admin_auth)):
+    load_data()
+    if 0 <= idx < len(subscriptions["pending"]):
+        req = subscriptions["pending"].pop(idx)
+        
+        # एक्सपायरी डेट कैलकुलेट करें
+        expiry_date = (date.today() + timedelta(days=int(req["days"]))).strftime("%d-%m-%Y")
+        
+        subscriptions["active"].append({
+            "uid": req["uid"],
+            "amount": req["amount"],
+            "days": req["days"],
+            "expiry": expiry_date
+        })
+        save_all()
+    return HTMLResponse("<script>alert('Request Approved!'); window.location.href='/admin';</script>")
+
+@app.get("/admin/reject/{idx}")
+async def reject_sub(idx: int, username: str = Depends(admin_auth)):
+    load_data()
+    if 0 <= idx < len(subscriptions["pending"]):
+        subscriptions["pending"].pop(idx)
+        save_all()
+    return HTMLResponse("<script>alert('Request Rejected!'); window.location.href='/admin';</script>")
+
+# ============ EXISTING PROCESSING LOGIC ============
 @app.post("/api/process")
 async def process(request: Request, region: str = Form(...), uid: str = Form(...), action: str = Form(...)):
     if bot_status == "off":
@@ -724,18 +1078,15 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
     if not uid.isdigit():
         return JSONResponse({"status": "error", "message": "UID केवल अंकों (Numbers) में होनी चाहिए!"})
 
-    # ---- प्लेयर इन्फो एक्शन (WITH INSTANT AUTO-RETRY LOOP) ----
+    # ---- प्लेयर इन्फो एक्शन ----
     if action == "info":
         url = f"{INFO_API_URL}?region={region}&uid={uid}"
-        max_retries = 4
-        
-        for attempt in range(max_retries):
+        for _ in range(4):
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=6)) as resp:
+                    async with session.get(url, timeout=6) as resp:
                         if resp.status == 200:
                             raw_data = await resp.json()
-                            
                             basic = raw_data.get("BasicInfo") or raw_data.get("basicInfo") or {}
                             social = raw_data.get("socialInfo") or raw_data.get("SocialInfo") or {}
                             credit = raw_data.get("creditScoreInfo") or raw_data.get("CreditScoreInfo") or {}
@@ -748,10 +1099,6 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             except: last_login = "N/A"
                             try: create_at = datetime.fromtimestamp(int(create_at_ts)).strftime('%d-%m-%Y') if create_at_ts else "N/A"
                             except: create_at = "N/A"
-
-                            gender_raw = social.get("gender", "N/A")
-                            gender = "Female ♀️" if "FEMALE" in gender_raw.upper() else "Male ♂️" if "MALE" in gender_raw.upper() else "N/A"
-                            prefer_mode = social.get("modePrefer", "N/A").replace("ModePrefer_", "")
 
                             clean_profile = {
                                 "nickname": basic.get("nickname") or basic.get("Nickname") or "Unknown",
@@ -769,74 +1116,49 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                                 "last_login": last_login,
                                 "pet_id": pet.get("id", "No Pet"),
                                 "pet_level": pet.get("level", "N/A"),
-                                "prefer_mode": prefer_mode,
-                                "gender": gender,
                                 "signature": social.get("signature") or "No Signature Set"
                             }
-                            
                             return JSONResponse({"status": "success", "info": clean_profile, "raw": raw_data})
-            except Exception:
-                pass
-            
-            # अगर फेल हुआ तो बिना देरी किए तुरंत दोबारा कॉल करेगा (instant response के लिए)
+            except: pass
             await asyncio.sleep(0.1)
-            
         return JSONResponse({"status": "error", "message": "प्लेयर इन्फो सर्वर अभी काफी बिजी है, कृपया दोबारा प्रयास करें!"})
 
-    # ---- लाइक भेजने का एक्शन (WITH AUTO-RETRY LOOP) ----
+    # ---- लाइक भेजने का एक्शन ----
     elif action == "like":
         region_upper = region.upper()
         if not can_user_like(client_ip):
             return JSONResponse({"status": "error", "message": "आज की आपकी लाइक लिमिट खत्म हो चुकी है!"})
 
         url = f"{LIKE_API_URL}like?uid={uid}&region={region_upper}&key={API_KEY}"
-        max_retries = 3
-        
-        for attempt in range(max_retries):
+        for _ in range(3):
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                    async with session.get(url, timeout=8) as resp:
                         if resp.status == 200:
                             data = await resp.json()
-                            api_status = data.get('status')
-                            
-                            if api_status == 1:
+                            if data.get('status') == 1:
                                 update_user_like(client_ip)
                                 return JSONResponse({
-                                    "status": "success",
-                                    "player": data.get('PlayerNickname', 'Unknown'),
-                                    "uid": data.get('UID', uid),
-                                    "region": data.get('Region', region_upper),
-                                    "level": data.get('Level', 'N/A'),
-                                    "given": data.get('LikesGivenByAPI', 0),
-                                    "before": data.get('LikesbeforeCommand', 0),
-                                    "after": data.get('LikesafterCommand', 0)
+                                    "status": "success", "player": data.get('PlayerNickname', 'Unknown'),
+                                    "uid": data.get('UID', uid), "region": data.get('Region', region_upper),
+                                    "level": data.get('Level', 'N/A'), "given": data.get('LikesGivenByAPI', 0),
+                                    "before": data.get('LikesbeforeCommand', 0), "after": data.get('LikesafterCommand', 0)
                                 })
-                            elif api_status == 2:
+                            elif data.get('status') == 2:
                                 return JSONResponse({"status": "error", "message": "इस UID की आज की API लिमिट खत्म हो गई है।"})
-            except Exception:
-                pass
+            except: pass
             await asyncio.sleep(0.1)
-            
         return JSONResponse({"status": "error", "message": "लाइक सर्वर ओवरलोड है, कृपया फिर से कोशिश करें!"})
 
-    return JSONResponse({"status": "error", "message": "अवैध एक्शन टाइप।"})
-
-# ---- NEW FEATURE ROUTE: TOKEN GENERATION ----
 @app.post("/api/generate-token")
 async def generate_token(uid: str = Form(...), password: str = Form(...)):
     url = f"{TOKEN_API_URL}?uid={uid}&password={password}"
-    
-    # ⚡ टोकन जनरेटर के लिए भी ऑटो रीट्राई ताकि रिस्पॉन्स तुरंत मिले
     for _ in range(3):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                async with session.get(url, timeout=8) as resp:
                     if resp.status == 200:
-                        payload_data = await resp.json()
-                        return JSONResponse({"status": "success", "payload": payload_data})
-        except Exception:
-            pass
+                        return JSONResponse({"status": "success", "payload": await resp.json()})
+        except: pass
         await asyncio.sleep(0.1)
-        
-    return JSONResponse({"status": "error", "message": "टोकन एपीआई ने रिस्पॉन्स नहीं दिया, कृपया क्रेडेंशियल्स चेक करें।"})
+    return JSONResponse({"status": "error", "message": "टोकन एपीआई ने रिस्पॉन्स नहीं दिया।"})
