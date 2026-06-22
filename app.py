@@ -583,8 +583,8 @@ HTML_TEMPLATE = """
                 <h4 style="margin:0; color:#ffaa00;">₹ 49 PLAN</h4>
                 <p style="margin:5px 0 0 0; font-size:12px;">20 दिन वैलिडिटी</p>
             </div>
-            <div class="plan-card" id="plan2" onclick="selectPlan(79, 30)">
-                <h4 style="margin:0; color:#ffaa00;">₹ 79 PLAN</h4>
+            <div class="plan-card" id="plan2" onclick="selectPlan(60, 30)">
+                <h4 style="margin:0; color:#ffaa00;">₹ 60 PLAN</h4>
                 <p style="margin:5px 0 0 0; font-size:12px;">30 दिन वैलिडिटी</p>
             </div>
         </div>
@@ -653,7 +653,7 @@ HTML_TEMPLATE = """
     </form>
     
     <button type="button" class="btn-auto-plan" onclick="toggleSubModal(true)">
-        <i class="fa-solid fa-bolt"></i> ACTIVATE AUTO-LIKE BOT (₹49 / ₹79)
+        <i class="fa-solid fa-bolt"></i> ACTIVATE AUTO-LIKE BOT (₹49 / ₹60)
     </button>
     
     <div class="loader" id="loader">
@@ -737,7 +737,7 @@ HTML_TEMPLATE = """
         selectedAmount = amount;
         selectedDays = days;
         document.getElementById('plan1').className = amount === 49 ? 'plan-card selected' : 'plan-card';
-        document.getElementById('plan2').className = amount === 79 ? 'plan-card selected' : 'plan-card';
+        document.getElementById('plan2').className = amount === 60 ? 'plan-card selected' : 'plan-card';
         
         // Dynamic QR code API generation
         const upiStr = "upi://pay?pa={upi_id}&pn=SKANHAIYA&am=" + amount + "&cu=INR&tn=AutoLike_" + days + "Days";
