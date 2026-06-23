@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-# 🚀 VERCEL TOP-LEVEL OBJECT (इसे सबसे ऊपर रखा है ताकि डिप्लॉयमेंट फेल न हो)
+# 🚀 VERCEL TOP-LEVEL OBJECT
 app = FastAPI()
 security = HTTPBasic()
 
@@ -30,7 +30,7 @@ ADMIN_PASSWORD = "Kanhaiya@789"
 # 💰 UPI कॉन्फ़िगरेशन
 UPI_ID = "9230844760@fam"
 
-# 🐙 GITHUB DATABASE CONFIGURATION (यहाँ अपनी गिटहब डिटेल्स भरें)
+# 🐙 GITHUB DATABASE CONFIGURATION (यहाँ अपनी डिटेल्स डालें)
 GITHUB_USER = "kanhaiyaraikavara39-pixel"      
 GITHUB_REPO = "KR-LIKE"            
 GITHUB_TOKEN = "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"        
@@ -235,8 +235,8 @@ HTML_TEMPLATE = """
         .success-res {{ background: #022c16; border: 1px solid var(--primary); padding: 15px; border-radius: 4px; color: var(--primary); }}
         .error-res {{ background: #2d0606; border: 1px solid var(--alert-red); padding: 15px; border-radius: 4px; color: var(--alert-red); }}
         
-        /* 🎨 PLAYER INFO VISUAL STYLE SYSTEM */
-        .info-card {{ background: #050b18; border: 2px solid var(--secondary); border-radius: 8px; padding: 16px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }}
+        /* 🎨 PLAYER INFO & RAW DATA LAYOUT */
+        .info-card {{ background: #050b18; border: 2px solid var(--secondary); border-radius: 8px; padding: 16px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); margin-bottom: 15px; }}
         .info-header-title {{ text-align: center; color: var(--primary); font-size: 15px; font-weight: bold; border-bottom: 2px dashed var(--terminal-border); padding-bottom: 8px; margin-bottom: 12px; letter-spacing: 1px; }}
         .info-row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px; }}
         .info-label {{ color: #8492a6; font-weight: bold; }}
@@ -246,6 +246,10 @@ HTML_TEMPLATE = """
         .val-heart {{ color: var(--accent); }}
         .info-sig-box {{ background: rgba(0, 255, 170, 0.05); padding: 12px; border-radius: 6px; border-left: 4px solid var(--accent); margin-top: 12px; font-style: italic; font-size: 12px; color: #cbd5e1; }}
         
+        /* 💾 API RAW DATABASE BOX */
+        .raw-data-box {{ background: #010204; border: 1px solid var(--terminal-border); border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }}
+        .raw-data-box pre {{ margin: 0; white-space: pre-wrap; font-size: 11px; color: #00ff66; font-family: monospace; }}
+        
         .sub-modal {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1001; backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }}
         .sub-modal-content {{ background: #090f1c; border: 2px solid #ffaa00; border-radius: 8px; width: 100%; max-width: 440px; padding: 20px; box-sizing: border-box; position: relative; }}
         .plan-cards {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0; }}
@@ -253,8 +257,6 @@ HTML_TEMPLATE = """
         .plan-card.selected {{ border-color: #ffaa00; background: rgba(255,170,0,0.1); }}
         .qr-area {{ text-align: center; margin: 15px 0; display: none; }}
         .qr-area img {{ border: 4px solid white; border-radius: 4px; }}
-        .raw-data-box {{ background: #010204; border: 1px solid var(--terminal-border); border-radius: 4px; padding: 12px; max-height: 200px; overflow-y: auto; }}
-        .raw-data-box pre {{ margin: 0; white-space: pre-wrap; font-size: 11px; color: var(--secondary); }}
         .loader {{ display: none; text-align: center; margin-top: 15px; color: var(--secondary); }}
     </style>
 </head>
@@ -281,8 +283,8 @@ HTML_TEMPLATE = """
                 <h4 style="margin:0; color:#ffaa00;">₹ 49 PLAN</h4>
                 <p style="margin:5px 0 0 0; font-size:12px;">20 दिन वैलिडिटी</p>
             </div>
-            <div class="plan-card" id="plan2" onclick="selectPlan(60, 30)">
-                <h4 style="margin:0; color:#ffaa00;">₹ 60 PLAN</h4>
+            <div class="plan-card" id="plan2" onclick="selectPlan(79, 30)">
+                <h4 style="margin:0; color:#ffaa00;">₹ 79 PLAN</h4>
                 <p style="margin:5px 0 0 0; font-size:12px;">30 दिन वैलिडिटी</p>
             </div>
         </div>
@@ -374,7 +376,7 @@ HTML_TEMPLATE = """
     function selectPlan(amount, days) {{
         selectedAmount = amount; selectedDays = days;
         document.getElementById('plan1').className = amount === 49 ? 'plan-card selected' : 'plan-card';
-        document.getElementById('plan2').className = amount === 60 ? 'plan-card selected' : 'plan-card';
+        document.getElementById('plan2').className = amount === 79 ? 'plan-card selected' : 'plan-card';
         const upiStr = "upi://pay?pa={upi_id}&pn=SKANHAIYA&am=" + amount + "&cu=INR&tn=AutoLike_" + days + "Days";
         document.getElementById('payQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(upiStr);
         document.getElementById('qrArea').style.display = 'block';
@@ -403,7 +405,7 @@ HTML_TEMPLATE = """
                     resultDiv.innerHTML = "<h3>⚡ EXPLOIT INJECTED!</h3><b>PLAYER:</b> " + data.player + "<br><b>UID:</b> <code>" + data.uid + "</code><br><b>BOOSTED:</b> +" + data.given;
                 }} else {{
                     resultDiv.removeAttribute('class');
-                    resultDiv.innerHTML = data.html;
+                    resultDiv.innerHTML = data.html; // बैकएंड से रेंडर होकर आ रहा पूरा स्ट्रक्चर यहाँ इंजेक्ट होगा
                 }}
             }} else {{ resultDiv.className = 'error-res'; resultDiv.innerHTML = "❌ " + data.message; }}
         }} catch (e) {{ loader.style.display = 'none'; resultDiv.style.display = 'block'; resultDiv.className = 'error-res'; resultDiv.innerHTML = "❌ SYSTEM TIMEOUT."; }}
@@ -523,7 +525,10 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                             avatar = profile.get("avatarId") or basic.get("avatarId", "Default")
                             banner = profile.get("bannerId") or basic.get("bannerId", "Default")
 
-                            # 🎨 HIGH-QUALITY V1 TERMINAL STYLE FRONTEND RENDER
+                            # 🎨 RAW JSON FORMATTING FOR RE-VISUALIZATION
+                            raw_json_string = json.dumps(raw, indent=4, ensure_ascii=False)
+
+                            # 🎨 HIGH-QUALITY V1 TERMINAL STYLE + RAW JSON RESPONSE AT THE BOTTOM
                             html_ui = f"""
                             <div class="info-card">
                                 <div class="info-header-title"><i class="fa-solid fa-terminal"></i> PLAYER CORE REGISTRY</div>
@@ -537,6 +542,11 @@ async def process(request: Request, region: str = Form(...), uid: str = Form(...
                                 <div class="info-row"><span class="info-label">BANNER ASSET:</span><span class="info-value">{banner}</span></div>
                                 <div class="info-header-title" style="margin-top:10px; font-size:12px; color:var(--accent);">SIGNATURE DATA</div>
                                 <div class="info-sig-box">{signature}</div>
+                            </div>
+                            
+                            <div class="brand-header" style="font-size: 14px; text-align: left; margin: 15px 0 5px 2px; color: #00ff66;">📦 API RAW DATABASE RESPONSE:</div>
+                            <div class="raw-data-box">
+                                <pre>{raw_json_string}</pre>
                             </div>
                             """
                             return JSONResponse({"status": "success", "html": html_ui})
