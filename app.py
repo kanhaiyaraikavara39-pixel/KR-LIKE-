@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
+# 🚀 VERCEL TOP-LEVEL OBJECT (इसे सबसे ऊपर रखा है ताकि डिप्लॉयमेंट फेल न हो)
 app = FastAPI()
 security = HTTPBasic()
 
@@ -22,15 +23,15 @@ GITHUB_UPDATE_API = "https://github-token-aoto-update-tvnu.vercel.app/api/update
 ENCODED_KEY = "WkVYWFk="
 API_KEY = base64.b64decode(ENCODED_KEY).decode()
 
-# 🔐 एडमिन लॉगिन क्रेडेंชियल्स
+# 🔐 एडमिन लॉगिन क्रेडेंशियल्स
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "Kanhaiya@789"
 
 # 💰 UPI कॉन्फ़िगरेशन
 UPI_ID = "9230844760@fam"
 
-# 🐙 GITHUB DATABASE CONFIGURATION (यहाँ अपनी डिटेल्स भरें)
-GITHUB_USER = "kanhaiyaraikavara39-pixel""      
+# 🐙 GITHUB DATABASE CONFIGURATION (यहाँ अपनी गिटहब डिटेल्स भरें)
+GITHUB_USER = "kanhaiyaraikavara39-pixel"      
 GITHUB_REPO = "KR-LIKE"            
 GITHUB_TOKEN = "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"        
 GITHUB_FILE_PATH = "database.json"
@@ -234,7 +235,7 @@ HTML_TEMPLATE = """
         .success-res {{ background: #022c16; border: 1px solid var(--primary); padding: 15px; border-radius: 4px; color: var(--primary); }}
         .error-res {{ background: #2d0606; border: 1px solid var(--alert-red); padding: 15px; border-radius: 4px; color: var(--alert-red); }}
         
-        /* 🎨 FULL PLAYER INFO DESIGN SYSTEM (V1 REVIVAL) */
+        /* 🎨 PLAYER INFO VISUAL STYLE SYSTEM */
         .info-card {{ background: #050b18; border: 2px solid var(--secondary); border-radius: 8px; padding: 16px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }}
         .info-header-title {{ text-align: center; color: var(--primary); font-size: 15px; font-weight: bold; border-bottom: 2px dashed var(--terminal-border); padding-bottom: 8px; margin-bottom: 12px; letter-spacing: 1px; }}
         .info-row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px; }}
@@ -402,7 +403,7 @@ HTML_TEMPLATE = """
                     resultDiv.innerHTML = "<h3>⚡ EXPLOIT INJECTED!</h3><b>PLAYER:</b> " + data.player + "<br><b>UID:</b> <code>" + data.uid + "</code><br><b>BOOSTED:</b> +" + data.given;
                 }} else {{
                     resultDiv.removeAttribute('class');
-                    resultDiv.innerHTML = data.html; // डायरेक्ट सर्वर से आया हुआ पूरा विजुअल रेंडर होगा
+                    resultDiv.innerHTML = data.html;
                 }}
             }} else {{ resultDiv.className = 'error-res'; resultDiv.innerHTML = "❌ " + data.message; }}
         }} catch (e) {{ loader.style.display = 'none'; resultDiv.style.display = 'block'; resultDiv.className = 'error-res'; resultDiv.innerHTML = "❌ SYSTEM TIMEOUT."; }}
